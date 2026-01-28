@@ -348,6 +348,7 @@ namespace Conflict_Test___Auto
                                     Thread.Sleep(1000);
 
                                     PortWrite(ConflictToPhase[i]);
+                                    Thread.Sleep(1000);
 
                                 }
 

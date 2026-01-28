@@ -250,7 +250,7 @@ namespace Conflict_Test___Auto
                     {
                         try
                         {
-                            WebFetchDebug(wq1, "http://" + IPAddress + "/hvi?file=editor/parseData&uic=3145&page=/frames/home/resetErrors&uf=MACRST.F");
+                            WebFetchDebug(wq1, "http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=/frames/home/resetErrors");
                         }
                         catch (System.Net.WebException ex)
                         {

@@ -10,7 +10,6 @@ using Microsoft.Office.Interop.Word;
 using Microsoft.Office.Core;
 using Application = Microsoft.Office.Interop.Word.Application;
 using System.Management;
-using Conflict_Test___Auto.Properties;
 using HtmlAgilityPack;
 using System.Linq;
 using System.Threading;
@@ -273,20 +272,20 @@ namespace Conflict_Test___Auto
 
                                 if (StopStart == 0)
                                 {
-
                                     textBox2.AppendText("Conflict From Phase: " + Convert.ToChar(Int32.Parse(ConflictFromPhase[i]) + 64) + " To Phase: " + Convert.ToChar(Int32.Parse(ConflictToPhase[i]) + 64));
                                     textBox2.AppendText(" | ");
                                     textBox2.SelectionColor = Color.Green;
-                                    textBox2.AppendText("Passed");
+                                    textBox2.AppendText("\u2714 Passed");
                                     textBox2.SelectionColor = Color.Black;
                                     textBox2.AppendText(" | OMS G0" + ConflictToPhase[i] + " in Fault Log");
                                     textBox2.AppendText(Environment.NewLine);
                                 }
-                                else 
+                                else
                                 {
                                     textBox2.AppendText(Environment.NewLine);
                                     textBox2.SelectionColor = Color.Red;
-                                    textBox2.AppendText("Conflict From Phase Incomplete");
+                                    textBox2.AppendText("\u2718 Conflict From Phase Incomplete");
+                                    textBox2.SelectionColor = Color.Black;
                                     textBox2.AppendText(Environment.NewLine);
                                 }
 
@@ -376,6 +375,8 @@ namespace Conflict_Test___Auto
                     button1.Enabled = true;
                     button3.Enabled = false;
                     StopStart = 0;
+                    statusLabel.Text = "\u2714 Test complete - " + ConflictCount + " conflicts tested successfully";
+                    statusLabel.ForeColor = Color.FromArgb(40, 167, 69);
 
                     PortWrite("0");
 
@@ -433,6 +434,8 @@ namespace Conflict_Test___Auto
         {
             button1.Enabled = false;
             button3.Enabled = true;
+            statusLabel.Text = "Running conflict test...";
+            statusLabel.ForeColor = Color.FromArgb(0, 123, 255);
 
             var worker = new BackgroundWorker();
             worker.DoWork += new DoWorkEventHandler(worker_DoWork);
@@ -495,6 +498,10 @@ namespace Conflict_Test___Auto
         private void button3_Click(object sender, EventArgs e)
         {
             StopStart = 1;
+            statusLabel.Text = "\u25A0 Test stopped by user";
+            statusLabel.ForeColor = Color.FromArgb(220, 53, 69);
+            button1.Enabled = true;
+            button3.Enabled = false;
         }
 
         private void button4_Click(object sender, EventArgs e)
@@ -508,8 +515,6 @@ namespace Conflict_Test___Auto
 
         public void RTF_Create()
         {
-
-
             string path = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
 
             SaveFileDialog dlg = new SaveFileDialog();
@@ -519,28 +524,15 @@ namespace Conflict_Test___Auto
             dlg.InitialDirectory = path;
             if (dlg.ShowDialog() == DialogResult.OK)
             {
-                // Add Image
-/*                if (ImageLoaded == 0)
-                {
-                    Label imgLabel = new Label();
-                    imgLabel.Image = Resources.download1;
-                    imgLabel.AutoSize = false;
-                    imgLabel.Size = imgLabel.Image.Size;
-                    imgLabel.ImageAlign = ContentAlignment.MiddleCenter;
-                    imgLabel.Text = "";
-                    imgLabel.BackColor = Color.Transparent;
-                    imgLabel.Parent = textBox2;
-                    // pick a location where it won't get in the way too much
-                    imgLabel.Location = new System.Drawing.Point(textBox2.ClientSize.Width - imgLabel.Image.Width, 0);
-                    ImageLoaded = 1;
-                }*/
+                statusLabel.Text = "Exporting RTF...";
+                statusLabel.ForeColor = Color.FromArgb(0, 123, 255);
 
-                // textBox2.SaveFile(dlg.FileName);
                 rtfName = dlg.FileName;
                 File.WriteAllText(dlg.FileName, textBox2.Rtf);
 
+                statusLabel.Text = "\u2714 RTF exported successfully";
+                statusLabel.ForeColor = Color.FromArgb(40, 167, 69);
             }
-
         }
 
         public int FindMyText(string txtToSearch, int searchStart, int searchEnd)
@@ -584,26 +576,25 @@ namespace Conflict_Test___Auto
 
         private void button5_Click(object sender, EventArgs e)
         {
-
-            // Add Image
-/*            if (ImageLoaded == 0)
-            {
-                Label imgLabel = new Label();
-                imgLabel.Image = Resources.download1;
-                imgLabel.AutoSize = false;
-                imgLabel.Size = imgLabel.Image.Size;
-                imgLabel.ImageAlign = ContentAlignment.MiddleCenter;
-                imgLabel.Text = "";
-                imgLabel.BackColor = Color.Transparent;
-                imgLabel.Parent = textBox2;
-                // pick a location where it won't get in the way too much
-                imgLabel.Location = new System.Drawing.Point(textBox2.ClientSize.Width - imgLabel.Image.Width, 0);
-                ImageLoaded = 1;
-            }*/
-
             RTF_Create();
-            CreatePDF(rtfName, @"C: \Users\robert.pickup\Desktop\" + rtfName);
+            if (!string.IsNullOrEmpty(rtfName))
+            {
+                statusLabel.Text = "Exporting PDF...";
+                statusLabel.ForeColor = Color.FromArgb(0, 123, 255);
 
+                string result = CreatePDF(rtfName, Path.GetDirectoryName(rtfName));
+
+                if (result != null)
+                {
+                    statusLabel.Text = "\u2714 PDF exported successfully";
+                    statusLabel.ForeColor = Color.FromArgb(40, 167, 69);
+                }
+                else
+                {
+                    statusLabel.Text = "\u2718 PDF export failed";
+                    statusLabel.ForeColor = Color.FromArgb(220, 53, 69);
+                }
+            }
         }
 
 
@@ -698,39 +689,56 @@ namespace Conflict_Test___Auto
 
         public static int DummyPhases(string IPAddress, int PhaseCount)
         {
-
             var countDummyPhases = 0;
-
-
             string TableNumber = "";
 
-            for (int i = 10; i < 20; i++)
+            try
             {
                 HtmlWeb web = new HtmlWeb();
                 HtmlAgilityPack.HtmlDocument document = web.Load("http://" + IPAddress + "/report01.html");
-                string TableNo = document.DocumentNode.SelectNodes("//*[@id=\"container\"]/table["+i.ToString()+"]/thead/tr/td[2]").First().InnerText;
 
-
-                if (TableNo == "Site Phase")
+                // Search through all tables to find "Site Phase"
+                for (int i = 1; i <= 100; i++)
                 {
-                    TableNumber = i.ToString();
+                    var nodes = document.DocumentNode.SelectNodes("//*[@id=\"container\"]/table[" + i.ToString() + "]/thead/tr/td[2]");
+
+                    if (nodes == null || !nodes.Any())
+                        continue;
+
+                    string TableNo = nodes.First().InnerText;
+
+                    if (TableNo == "Site Phase")
+                    {
+                        TableNumber = i.ToString();
+                        break;
+                    }
+                }
+
+                if (string.IsNullOrEmpty(TableNumber))
+                    return 0;
+
+                for (int i = 1; i < PhaseCount + 1; i++)
+                {
+                    var phaseNodes = document.DocumentNode.SelectNodes("//*[@id=\"container\"]/table[" + TableNumber + "]/tbody/tr[7]/td[4]");
+
+                    if (phaseNodes == null || !phaseNodes.Any())
+                        continue;
+
+                    var phaseType = phaseNodes.First().InnerText;
+
+                    Debug.WriteLine(phaseType);
+
+                    if (phaseType == "0: Dummy")
+                    {
+                        countDummyPhases++;
+                    }
                 }
             }
-
-
-            for (int i = 1; i < PhaseCount + 1; i++)
+            catch
             {
-                HtmlWeb web = new HtmlWeb();
-                HtmlAgilityPack.HtmlDocument document = web.Load("http://"+IPAddress+"/report01.html");
-                var phaseType = document.DocumentNode.SelectNodes("//*[@id=\"container\"]/table["+TableNumber+"]/tbody/tr[7]/td[4]").First().InnerText;
-                
-
-                Debug.WriteLine(phaseType);
-
-                if (phaseType == "0: Dummy")
-                { countDummyPhases++; }
-
+                return 0;
             }
+
             Debug.WriteLine(countDummyPhases);
             return countDummyPhases;
         }

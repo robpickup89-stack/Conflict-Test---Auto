@@ -6,13 +6,13 @@ using System.Diagnostics;
 using System.Net.NetworkInformation;
 using System.IO.Ports;
 using System.ComponentModel;
-using Microsoft.Office.Interop.Word;
-using Microsoft.Office.Core;
-using Application = Microsoft.Office.Interop.Word.Application;
 using System.Management;
 using HtmlAgilityPack;
 using System.Linq;
 using System.Threading;
+using iTextSharp.text;
+using iTextSharp.text.pdf;
+using Font = iTextSharp.text.Font;
 
 namespace Conflict_Test___Auto
 {
@@ -453,6 +453,33 @@ namespace Conflict_Test___Auto
 
                                 WaitingToReset = 0;
 
+                                // Reset controller after the first conflict test
+                                if (ConflictCount == 1)
+                                {
+                                    textBox2.AppendText("Resetting controller after first conflict test...");
+                                    textBox2.AppendText(Environment.NewLine);
+                                    PortWrite("0");
+                                    System.Net.WebClient wqFirstReset = new System.Net.WebClient();
+                                    try
+                                    {
+                                        WebFetchDebug(wqFirstReset, "http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=cell1000.hvi&uf=MACRST.F");
+                                    }
+                                    catch (System.Net.WebException)
+                                    {
+                                        try
+                                        {
+                                            WebFetchDebug(wqFirstReset, "http://" + IPAddress + "/hvi?file=editor/parseData&uic=3145&page=/frames/home/resetErrors&uf=MACRST.F");
+                                        }
+                                        catch (System.Net.WebException ex)
+                                        {
+                                            Debug.WriteLine("First conflict reset request failed: " + ex.Message);
+                                        }
+                                    }
+                                    Thread.Sleep(5000); // Wait for controller to reboot
+                                    textBox2.AppendText("Controller reset complete. Continuing with remaining conflicts...");
+                                    textBox2.AppendText(Environment.NewLine);
+                                }
+
                             }
                             else
                             {
@@ -696,13 +723,20 @@ namespace Conflict_Test___Auto
 
         private void button5_Click(object sender, EventArgs e)
         {
-            RTF_Create();
-            if (!string.IsNullOrEmpty(rtfName))
+            string path = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+
+            SaveFileDialog dlg = new SaveFileDialog();
+            dlg.Filter = "PDF Files (*.pdf)|*.pdf";
+            dlg.FileName = SiteName + "_" + DateTime.Now.ToString("dd MMMM yyyy") + ".pdf";
+            dlg.RestoreDirectory = true;
+            dlg.InitialDirectory = path;
+
+            if (dlg.ShowDialog() == DialogResult.OK)
             {
                 statusLabel.Text = "Exporting PDF...";
                 statusLabel.ForeColor = Color.FromArgb(0, 123, 255);
 
-                string result = CreatePDF(rtfName, Path.GetDirectoryName(rtfName));
+                string result = CreatePDF(dlg.FileName);
 
                 if (result != null)
                 {
@@ -728,42 +762,72 @@ namespace Conflict_Test___Auto
 
 
 
-        public string CreatePDF(string path, string exportDir)
+        public string CreatePDF(string pdfPath)
         {
-
-
-
-            Application app = new Application();
-            app.DisplayAlerts = WdAlertLevel.wdAlertsNone;
-            app.Visible = false;
-
-            var objPresSet = app.Documents;
-            var objPres = objPresSet.Open(path, MsoTriState.msoTrue, MsoTriState.msoTrue, MsoTriState.msoFalse);
-
-            var pdfFileName = Path.ChangeExtension(path, ".pdf");
-            var pdfPath = Path.Combine(exportDir, pdfFileName);
-
             try
             {
-                objPres.ExportAsFixedFormat(
-                    pdfPath,
-                    WdExportFormat.wdExportFormatPDF,
-                    false,
-                    WdExportOptimizeFor.wdExportOptimizeForPrint,
-                    WdExportRange.wdExportAllDocument
+                using (FileStream fs = new FileStream(pdfPath, FileMode.Create, FileAccess.Write, FileShare.None))
+                {
+                    Document doc = new Document(PageSize.A4, 40, 40, 40, 40);
+                    PdfWriter writer = PdfWriter.GetInstance(doc, fs);
+                    doc.Open();
 
-                );
+                    // Define fonts
+                    Font titleFont = new Font(Font.FontFamily.HELVETICA, 16, Font.BOLD, BaseColor.BLACK);
+                    Font normalFont = new Font(Font.FontFamily.HELVETICA, 10, Font.NORMAL, BaseColor.BLACK);
+                    Font boldFont = new Font(Font.FontFamily.HELVETICA, 10, Font.BOLD, BaseColor.BLACK);
+                    Font greenFont = new Font(Font.FontFamily.HELVETICA, 10, Font.NORMAL, new BaseColor(40, 167, 69));
+                    Font redFont = new Font(Font.FontFamily.HELVETICA, 10, Font.NORMAL, new BaseColor(220, 53, 69));
+
+                    // Parse the RichTextBox content line by line
+                    string[] lines = textBox2.Text.Split(new[] { Environment.NewLine, "\n" }, StringSplitOptions.None);
+
+                    foreach (string line in lines)
+                    {
+                        Paragraph para;
+
+                        if (line.StartsWith("Automated Conflict Test") || line.StartsWith("** Conflict Test Complete **"))
+                        {
+                            para = new Paragraph(line, titleFont);
+                            para.SpacingAfter = 10;
+                        }
+                        else if (line.Contains("\u2714") || line.Contains("Passed"))
+                        {
+                            // Green checkmark / passed lines
+                            para = new Paragraph(line.Replace("\u2714", "[PASS]"), greenFont);
+                        }
+                        else if (line.Contains("\u2718") || line.Contains("Failed") || line.Contains("Incomplete"))
+                        {
+                            // Red X / failed lines
+                            para = new Paragraph(line.Replace("\u2718", "[FAIL]"), redFont);
+                        }
+                        else if (line.StartsWith("Site Name:") || line.StartsWith("Start Time:") ||
+                                 line.StartsWith("End Time:") || line.StartsWith("Date:") ||
+                                 line.StartsWith("Test Run by:") || line.StartsWith("Conflicts Tested") ||
+                                 line.StartsWith("Conflicts Failed"))
+                        {
+                            para = new Paragraph(line, boldFont);
+                        }
+                        else
+                        {
+                            para = new Paragraph(line, normalFont);
+                        }
+
+                        para.SpacingAfter = 2;
+                        doc.Add(para);
+                    }
+
+                    doc.Close();
+                    writer.Close();
+                }
+
+                return pdfPath;
             }
-            catch
+            catch (Exception ex)
             {
-                pdfPath = null;
+                Debug.WriteLine("PDF creation failed: " + ex.Message);
+                return null;
             }
-            finally
-            {
-                objPres.Close();
-                app.Quit();
-            }
-            return pdfPath;
         }
 
 

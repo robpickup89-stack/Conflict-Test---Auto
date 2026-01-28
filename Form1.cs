@@ -815,7 +815,7 @@ namespace Conflict_Test___Auto
 
                 for (int i = 1; i < PhaseCount + 1; i++)
                 {
-                    var phaseNodes = document.DocumentNode.SelectNodes("//*[@id=\"container\"]/table[" + TableNumber + "]/tbody/tr[7]/td[4]");
+                    var phaseNodes = document.DocumentNode.SelectNodes("//*[@id=\"container\"]/table[" + TableNumber + "]/tbody/tr[" + i.ToString() + "]/td[4]");
 
                     if (phaseNodes == null || !phaseNodes.Any())
                         continue;

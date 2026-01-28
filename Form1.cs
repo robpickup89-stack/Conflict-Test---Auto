@@ -268,6 +268,24 @@ namespace Conflict_Test___Auto
                     }
                     string LEV3 = WebFetchDebug(wq1, "http://" + IPAddress + "/parv/SF.SYS/96");
 
+                    // Reboot controller before starting test to ensure clean state
+                    System.Net.WebClient wqReboot = new System.Net.WebClient();
+                    try
+                    {
+                        WebFetchDebug(wqReboot, "http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=cell1000.hvi&uf=MACRST.F");
+                    }
+                    catch (System.Net.WebException)
+                    {
+                        try
+                        {
+                            WebFetchDebug(wqReboot, "http://" + IPAddress + "/hvi?file=editor/parseData&uic=3145&page=/frames/home/resetErrors&uf=MACRST.F");
+                        }
+                        catch (System.Net.WebException ex)
+                        {
+                            Debug.WriteLine("Initial MACRST.F reset request failed: " + ex.Message);
+                        }
+                    }
+                    Thread.Sleep(5000); // Wait for controller to reboot before starting
 
                     System.Net.WebClient wxy = new System.Net.WebClient();
                     SiteName = WebFetchDebug(wxy, "http://" + IPAddress + "/vi?fmt=<t*XP.SYS/0>");
@@ -307,10 +325,16 @@ namespace Conflict_Test___Auto
 
                             if (RemoveDummyConflicts[i] == "1")
                             {
+                                // Re-fetch Level 3 status before checking
+                                Thread.Sleep(2000);
+                                System.Net.WebClient wqLev3Check = new System.Net.WebClient();
+                                LEV3 = WebFetchDebug(wqLev3Check, "http://" + IPAddress + "/parv/SF.SYS/96");
 
                                 while (Convert.ToChar(Int32.Parse(LEV3)) < 300)
                                 {
                                     MessageBox.Show("Please press Level 3 Button", "No Level 3", MessageBoxButtons.OK, MessageBoxIcon.Stop);
+                                    Thread.Sleep(3000); // Wait before re-checking Level 3
+                                    LEV3 = WebFetchDebug(wqLev3Check, "http://" + IPAddress + "/parv/SF.SYS/96");
                                 }
 
                                 // Get Phases Letters
@@ -342,13 +366,13 @@ namespace Conflict_Test___Auto
                                     // Debug.WriteLine(i);
                                     FaultLogData = WebFetchDebug(wx, "http://" + IPAddress + "/vi?fmt=<t*FAULTLOG/>\n");
 
-                                    Thread.Sleep(1000);
-                                  
+                                    Thread.Sleep(2000);
+
                                     PortWrite(ConflictFromPhase[i]);
-                                    Thread.Sleep(1000);
+                                    Thread.Sleep(2000);
 
                                     PortWrite(ConflictToPhase[i]);
-                                    Thread.Sleep(1000);
+                                    Thread.Sleep(2000);
 
                                 }
 
@@ -407,7 +431,7 @@ namespace Conflict_Test___Auto
                                         }
                                     }
 
-                                    Thread.Sleep(3000);
+                                    Thread.Sleep(5000); // Increased wait for controller reboot
 
                                     webDataFault = WebFetchDebug(wtzz, "http://" + IPAddress + "/parv/SF.SYS/19");
                                     MAL = WebFetchDebug(wtzz, "http://" + IPAddress + "/parv/SF.SYS/0");
@@ -418,7 +442,7 @@ namespace Conflict_Test___Auto
 
                                     if (WaitingToReset == 0)
                                     {
-                                        Thread.Sleep(2000);
+                                        Thread.Sleep(3000); // Increased wait for controller restart
                                         textBox2.AppendText("Controller Restarting");
                                         textBox2.AppendText(Environment.NewLine);
                                         WaitingToReset = 1;
@@ -432,7 +456,7 @@ namespace Conflict_Test___Auto
                             }
                             else
                             {
-                                Thread.Sleep(1000);
+                                Thread.Sleep(2000);
                                 PortWrite("0");
                             }
 
@@ -445,7 +469,7 @@ namespace Conflict_Test___Auto
 
                     for (int i = 1; i < 13; i++)
                     {
-                        Thread.Sleep(1000);
+                        Thread.Sleep(2000);
                         PortWrite(i.ToString());
                     }
 

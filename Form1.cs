@@ -453,6 +453,33 @@ namespace Conflict_Test___Auto
 
                                 WaitingToReset = 0;
 
+                                // Reset controller after the first conflict test
+                                if (ConflictCount == 1)
+                                {
+                                    textBox2.AppendText("Resetting controller after first conflict test...");
+                                    textBox2.AppendText(Environment.NewLine);
+                                    PortWrite("0");
+                                    System.Net.WebClient wqFirstReset = new System.Net.WebClient();
+                                    try
+                                    {
+                                        WebFetchDebug(wqFirstReset, "http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=cell1000.hvi&uf=MACRST.F");
+                                    }
+                                    catch (System.Net.WebException)
+                                    {
+                                        try
+                                        {
+                                            WebFetchDebug(wqFirstReset, "http://" + IPAddress + "/hvi?file=editor/parseData&uic=3145&page=/frames/home/resetErrors&uf=MACRST.F");
+                                        }
+                                        catch (System.Net.WebException ex)
+                                        {
+                                            Debug.WriteLine("First conflict reset request failed: " + ex.Message);
+                                        }
+                                    }
+                                    Thread.Sleep(5000); // Wait for controller to reboot
+                                    textBox2.AppendText("Controller reset complete. Continuing with remaining conflicts...");
+                                    textBox2.AppendText(Environment.NewLine);
+                                }
+
                             }
                             else
                             {

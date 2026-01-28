@@ -187,9 +187,16 @@ namespace Conflict_Test___Auto
                     {
                         wq1.DownloadString("http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=cell1000.hvi");
                     }
-                    catch (System.Net.WebException ex)
+                    catch (System.Net.WebException)
                     {
-                        Debug.WriteLine("HVI page request failed: " + ex.Message);
+                        try
+                        {
+                            wq1.DownloadString("http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=resetErrors");
+                        }
+                        catch (System.Net.WebException ex)
+                        {
+                            Debug.WriteLine("HVI page request failed: " + ex.Message);
+                        }
                     }
                     wq1.DownloadString("http://" + IPAddress + "/parv/SF.SYS/LEV3?val=9999");
                     string LEV3 = wq1.DownloadString("http://" + IPAddress + "/parv/SF.SYS/96");
@@ -320,9 +327,16 @@ namespace Conflict_Test___Auto
                                     {
                                         wq1x.DownloadString("http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=cell1000.hvi&uf=MACRST.F");
                                     }
-                                    catch (System.Net.WebException ex)
+                                    catch (System.Net.WebException)
                                     {
-                                        Debug.WriteLine("HVI macro reset request failed: " + ex.Message);
+                                        try
+                                        {
+                                            wq1x.DownloadString("http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=resetErrors&uf=MACRST.F");
+                                        }
+                                        catch (System.Net.WebException ex)
+                                        {
+                                            Debug.WriteLine("HVI macro reset request failed: " + ex.Message);
+                                        }
                                     }
 
                                     Thread.Sleep(3000);

@@ -183,6 +183,7 @@ namespace Conflict_Test___Auto
                     var OMSErrors = 0;
 
                     System.Net.WebClient wq1 = new System.Net.WebClient();
+                    wq1.Credentials = new System.Net.NetworkCredential("installer", "installer");
                     try
                     {
                         wq1.DownloadString("http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=cell1000.hvi");
@@ -198,7 +199,15 @@ namespace Conflict_Test___Auto
                             Debug.WriteLine("HVI page request failed: " + ex.Message);
                         }
                     }
-                    wq1.DownloadString("http://" + IPAddress + "/parv/SF.SYS/LEV3?val=9999");
+                    try
+                    {
+                        wq1.DownloadString("http://" + IPAddress + "/parv/SF.SYS/LEV3?val=9999");
+                    }
+                    catch (System.Net.WebException ex)
+                    {
+                        Debug.WriteLine("LEV3 set request failed (401 auth may be required): " + ex.Message);
+                        MessageBox.Show("Unable to set Manual Level 3 - authentication failed.\nPlease ensure Level 3 is set manually on the controller.", "Authentication Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
                     string LEV3 = wq1.DownloadString("http://" + IPAddress + "/parv/SF.SYS/96");
 
 

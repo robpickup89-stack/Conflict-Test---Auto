@@ -773,11 +773,11 @@ namespace Conflict_Test___Auto
                     doc.Open();
 
                     // Define fonts
-                    Font titleFont = new Font(Font.FontFamily.HELVETICA, 16, Font.BOLD, BaseColor.BLACK);
-                    Font normalFont = new Font(Font.FontFamily.HELVETICA, 10, Font.NORMAL, BaseColor.BLACK);
-                    Font boldFont = new Font(Font.FontFamily.HELVETICA, 10, Font.BOLD, BaseColor.BLACK);
-                    Font greenFont = new Font(Font.FontFamily.HELVETICA, 10, Font.NORMAL, new BaseColor(40, 167, 69));
-                    Font redFont = new Font(Font.FontFamily.HELVETICA, 10, Font.NORMAL, new BaseColor(220, 53, 69));
+                    Font titleFont = new Font(iTextSharp.text.Font.FontFamily.HELVETICA, 16, iTextSharp.text.Font.BOLD, BaseColor.BLACK);
+                    Font normalFont = new Font(iTextSharp.text.Font.FontFamily.HELVETICA, 10, iTextSharp.text.Font.NORMAL, BaseColor.BLACK);
+                    Font boldFont = new Font(iTextSharp.text.Font.FontFamily.HELVETICA, 10, iTextSharp.text.Font.BOLD, BaseColor.BLACK);
+                    Font greenFont = new Font(iTextSharp.text.Font.FontFamily.HELVETICA, 10, iTextSharp.text.Font.NORMAL, new BaseColor(40, 167, 69));
+                    Font redFont = new Font(iTextSharp.text.Font.FontFamily.HELVETICA, 10, iTextSharp.text.Font.NORMAL, new BaseColor(220, 53, 69));
 
                     // Parse the RichTextBox content line by line
                     string[] lines = textBox2.Text.Split(new[] { Environment.NewLine, "\n" }, StringSplitOptions.None);

@@ -183,7 +183,14 @@ namespace Conflict_Test___Auto
                     var OMSErrors = 0;
 
                     System.Net.WebClient wq1 = new System.Net.WebClient();
-                    wq1.DownloadString("http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=cell1000.hvi");
+                    try
+                    {
+                        wq1.DownloadString("http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=cell1000.hvi");
+                    }
+                    catch (System.Net.WebException ex)
+                    {
+                        Debug.WriteLine("HVI page request failed: " + ex.Message);
+                    }
                     wq1.DownloadString("http://" + IPAddress + "/parv/SF.SYS/LEV3?val=9999");
                     string LEV3 = wq1.DownloadString("http://" + IPAddress + "/parv/SF.SYS/96");
 
@@ -309,7 +316,14 @@ namespace Conflict_Test___Auto
                                     PortWrite("0");
                                     ConflictMessage = 1;
                                     System.Net.WebClient wq1x = new System.Net.WebClient();
-                                    wq1x.DownloadString("http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=cell1000.hvi&uf=MACRST.F");
+                                    try
+                                    {
+                                        wq1x.DownloadString("http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=cell1000.hvi&uf=MACRST.F");
+                                    }
+                                    catch (System.Net.WebException ex)
+                                    {
+                                        Debug.WriteLine("HVI macro reset request failed: " + ex.Message);
+                                    }
 
                                     Thread.Sleep(3000);
 

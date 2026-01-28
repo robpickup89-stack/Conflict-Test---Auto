@@ -26,6 +26,8 @@ namespace Conflict_Test___Auto
             InitializeComponent();
 
             this.FormClosed += new FormClosedEventHandler(Form1_FormClosed);
+            this.KeyPreview = true;
+            this.KeyDown += new KeyEventHandler(Form1_KeyDown);
 
             TextBox.CheckForIllegalCrossThreadCalls = false;
 
@@ -36,8 +38,36 @@ namespace Conflict_Test___Auto
 
             textBox1.Text = "10.164.95.201";
 
-            this.ActiveControl = textBox1;                     
+            this.ActiveControl = textBox1;
 
+        }
+
+        private void Form1_KeyDown(object sender, KeyEventArgs e)
+        {
+            // Ctrl+D toggles debug mode
+            if (e.Control && e.KeyCode == Keys.D)
+            {
+                DebugMode = !DebugMode;
+                if (DebugMode)
+                {
+                    statusLabel.Text = "Debug mode ON - web port data will be shown";
+                    statusLabel.ForeColor = Color.DarkCyan;
+                    textBox2.SelectionColor = Color.DarkCyan;
+                    textBox2.AppendText("[DEBUG] Debug mode enabled - showing web port data in/out");
+                    textBox2.AppendText(Environment.NewLine);
+                    textBox2.SelectionColor = Color.Black;
+                }
+                else
+                {
+                    statusLabel.Text = "Debug mode OFF";
+                    statusLabel.ForeColor = Color.FromArgb(73, 80, 87);
+                    textBox2.SelectionColor = Color.DarkCyan;
+                    textBox2.AppendText("[DEBUG] Debug mode disabled");
+                    textBox2.AppendText(Environment.NewLine);
+                    textBox2.SelectionColor = Color.Black;
+                }
+                e.Handled = true;
+            }
         }
 
         public int PortNum = 0;
@@ -48,6 +78,34 @@ namespace Conflict_Test___Auto
 
         public int MaxOutputs = 13;
         public int ConflictCount = 0;
+
+        // Debug mode - toggle with Ctrl+D
+        public bool DebugMode = false;
+
+        /// <summary>
+        /// Downloads a string from the specified URL with optional debug output
+        /// </summary>
+        private string WebFetchDebug(System.Net.WebClient client, string url)
+        {
+            if (DebugMode)
+            {
+                textBox2.SelectionColor = Color.DarkCyan;
+                textBox2.AppendText("[DEBUG] >> GET " + url);
+                textBox2.AppendText(Environment.NewLine);
+            }
+
+            string response = client.DownloadString(url);
+
+            if (DebugMode)
+            {
+                textBox2.SelectionColor = Color.DarkMagenta;
+                textBox2.AppendText("[DEBUG] << " + response.Replace("\n", " | ").Trim());
+                textBox2.AppendText(Environment.NewLine);
+                textBox2.SelectionColor = Color.Black;
+            }
+
+            return response;
+        }
 
         private async void worker_DoWork(object sender, DoWorkEventArgs e)
         {
@@ -88,7 +146,7 @@ namespace Conflict_Test___Auto
 
                 // Get Conflicts
                 System.Net.WebClient wc = new System.Net.WebClient();
-                string webDataConflicts = wc.DownloadString("http://" + IPAddress + "/parv/OPPOSE.R1/");
+                string webDataConflicts = WebFetchDebug(wc, "http://" + IPAddress + "/parv/OPPOSE.R1/");
                 string[] webDataSplitConflicts = webDataConflicts.Split('\n');
 
                 var NumberOfConflicts = webDataSplitConflicts.Length;
@@ -96,7 +154,7 @@ namespace Conflict_Test___Auto
 
                 // Get Phases Letters
                 System.Net.WebClient wt = new System.Net.WebClient();
-                string webDataPhases = wt.DownloadString("http://" + IPAddress + "/parv/XSG.CSC/");
+                string webDataPhases = WebFetchDebug(wt, "http://" + IPAddress + "/parv/XSG.CSC/");
                 string[] webDataSplitPhases = webDataPhases.Split('\n');
 
                 var NumberOfPhases = webDataSplitPhases.Length;
@@ -186,13 +244,13 @@ namespace Conflict_Test___Auto
                     wq1.Credentials = new System.Net.NetworkCredential("installer", "installer");
                     try
                     {
-                        wq1.DownloadString("http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=cell1000.hvi");
+                        WebFetchDebug(wq1, "http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=cell1000.hvi");
                     }
                     catch (System.Net.WebException)
                     {
                         try
                         {
-                            wq1.DownloadString("http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=resetErrors");
+                            WebFetchDebug(wq1, "http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=resetErrors");
                         }
                         catch (System.Net.WebException ex)
                         {
@@ -201,18 +259,18 @@ namespace Conflict_Test___Auto
                     }
                     try
                     {
-                        wq1.DownloadString("http://" + IPAddress + "/parv/SF.SYS/LEV3?val=9999");
+                        WebFetchDebug(wq1, "http://" + IPAddress + "/parv/SF.SYS/LEV3?val=9999");
                     }
                     catch (System.Net.WebException ex)
                     {
                         Debug.WriteLine("LEV3 set request failed (401 auth may be required): " + ex.Message);
                         MessageBox.Show("Unable to set Manual Level 3 - authentication failed.\nPlease ensure Level 3 is set manually on the controller.", "Authentication Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     }
-                    string LEV3 = wq1.DownloadString("http://" + IPAddress + "/parv/SF.SYS/96");
+                    string LEV3 = WebFetchDebug(wq1, "http://" + IPAddress + "/parv/SF.SYS/96");
 
 
                     System.Net.WebClient wxy = new System.Net.WebClient();
-                    SiteName = wxy.DownloadString("http://" + IPAddress + "/vi?fmt=<t*XP.SYS/0>");
+                    SiteName = WebFetchDebug(wxy, "http://" + IPAddress + "/vi?fmt=<t*XP.SYS/0>");
                     textBox2.SelectionFont = new System.Drawing.Font(textBox2.Font, FontStyle.Bold);
                     textBox2.AppendText("Automated Conflict Test - Swarco");
                     textBox2.AppendText(Environment.NewLine);
@@ -257,14 +315,14 @@ namespace Conflict_Test___Auto
 
                                 // Get Phases Letters
                                 System.Net.WebClient wq = new System.Net.WebClient();
-                                string webDataPhasesColour = wq.DownloadString("http://" + IPAddress + "/parv/XSG.CSC/");
+                                string webDataPhasesColour = WebFetchDebug(wq, "http://" + IPAddress + "/parv/XSG.CSC/");
                                 string[] webDataSplitPhasesColour = webDataPhasesColour.Split('\n');
 
                                 while (((webDataSplitPhasesColour[Int32.Parse(ConflictFromPhase[i]) - 1] != "3") || (webDataSplitPhasesColour[Int32.Parse(ConflictToPhase[i]) - 1] == "3") || (webDataSplitPhasesColour[Int32.Parse(ConflictToPhase[i]) - 1] == "4")) && (StopStart == 0))
                                 {
                                     // Get Phases Letters
                                     System.Net.WebClient wxp = new System.Net.WebClient();
-                                    webDataPhasesColour = wxp.DownloadString("http://" + IPAddress + "/parv/XSG.CSC/");
+                                    webDataPhasesColour = WebFetchDebug(wxp, "http://" + IPAddress + "/parv/XSG.CSC/");
                                     webDataSplitPhasesColour = webDataPhasesColour.Split('\n');
                                     if (ConflictMessage == 1)
                                     {
@@ -276,13 +334,13 @@ namespace Conflict_Test___Auto
                                 }
                                 // Check fault in log matches conflict
                                 System.Net.WebClient wx = new System.Net.WebClient();
-                                string FaultLogData = wx.DownloadString("http://" + IPAddress + "/vi?fmt=<t*FAULTLOG/>\n");
+                                string FaultLogData = WebFetchDebug(wx, "http://" + IPAddress + "/vi?fmt=<t*FAULTLOG/>\n");
 
                                 while (((!FaultLogData.Contains("OMS ERR G" + ConflictToPhase[i])) && (!FaultLogData.Contains("OMS ERR G0" + ConflictToPhase[i])))  && (StopStart == 0))
                                 {
                                     // Debug.WriteLine(NumberOfConflicts);
                                     // Debug.WriteLine(i);
-                                    FaultLogData = wx.DownloadString("http://" + IPAddress + "/vi?fmt=<t*FAULTLOG/>\n");
+                                    FaultLogData = WebFetchDebug(wx, "http://" + IPAddress + "/vi?fmt=<t*FAULTLOG/>\n");
 
                                     Thread.Sleep(1000);
                                   
@@ -314,13 +372,13 @@ namespace Conflict_Test___Auto
 
 
                                 System.Net.WebClient wtzz = new System.Net.WebClient();
-                                string webDataFault = wtzz.DownloadString("http://" + IPAddress + "/parv/SF.SYS/19");
-                                string MAL = wtzz.DownloadString("http://" + IPAddress + "/parv/SF.SYS/0");
-                                string xp1 = wtzz.DownloadString("http://" + IPAddress + "/parv/SF.SYS/66");
-                                string xp2 = wtzz.DownloadString("http://" + IPAddress + "/parv/SF.SYS/67");
-                                string xp3 = wtzz.DownloadString("http://" + IPAddress + "/parv/SF.SYS/68");
-                                string xp4 = wtzz.DownloadString("http://" + IPAddress + "/parv/SF.SYS/69");
-                                string Streams = wtzz.DownloadString("http://" + IPAddress + "/parv/STEPM.STS");
+                                string webDataFault = WebFetchDebug(wtzz, "http://" + IPAddress + "/parv/SF.SYS/19");
+                                string MAL = WebFetchDebug(wtzz, "http://" + IPAddress + "/parv/SF.SYS/0");
+                                string xp1 = WebFetchDebug(wtzz, "http://" + IPAddress + "/parv/SF.SYS/66");
+                                string xp2 = WebFetchDebug(wtzz, "http://" + IPAddress + "/parv/SF.SYS/67");
+                                string xp3 = WebFetchDebug(wtzz, "http://" + IPAddress + "/parv/SF.SYS/68");
+                                string xp4 = WebFetchDebug(wtzz, "http://" + IPAddress + "/parv/SF.SYS/69");
+                                string Streams = WebFetchDebug(wtzz, "http://" + IPAddress + "/parv/STEPM.STS");
                                 int StreamsNumbers = Streams.Split('\n').Length;
 
 
@@ -334,13 +392,13 @@ namespace Conflict_Test___Auto
                                     System.Net.WebClient wq1x = new System.Net.WebClient();
                                     try
                                     {
-                                        wq1x.DownloadString("http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=cell1000.hvi&uf=MACRST.F");
+                                        WebFetchDebug(wq1x, "http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=cell1000.hvi&uf=MACRST.F");
                                     }
                                     catch (System.Net.WebException)
                                     {
                                         try
                                         {
-                                            wq1x.DownloadString("http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=resetErrors&uf=MACRST.F");
+                                            WebFetchDebug(wq1x, "http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=resetErrors&uf=MACRST.F");
                                         }
                                         catch (System.Net.WebException ex)
                                         {
@@ -350,12 +408,12 @@ namespace Conflict_Test___Auto
 
                                     Thread.Sleep(3000);
 
-                                    webDataFault = wtzz.DownloadString("http://" + IPAddress + "/parv/SF.SYS/19");
-                                    MAL = wtzz.DownloadString("http://" + IPAddress + "/parv/SF.SYS/0");
-                                    xp1 = wtzz.DownloadString("http://" + IPAddress + "/parv/SF.SYS/66");
-                                    xp2 = wtzz.DownloadString("http://" + IPAddress + "/parv/SF.SYS/67");
-                                    xp3 = wtzz.DownloadString("http://" + IPAddress + "/parv/SF.SYS/68");
-                                    xp4 = wtzz.DownloadString("http://" + IPAddress + "/parv/SF.SYS/69");
+                                    webDataFault = WebFetchDebug(wtzz, "http://" + IPAddress + "/parv/SF.SYS/19");
+                                    MAL = WebFetchDebug(wtzz, "http://" + IPAddress + "/parv/SF.SYS/0");
+                                    xp1 = WebFetchDebug(wtzz, "http://" + IPAddress + "/parv/SF.SYS/66");
+                                    xp2 = WebFetchDebug(wtzz, "http://" + IPAddress + "/parv/SF.SYS/67");
+                                    xp3 = WebFetchDebug(wtzz, "http://" + IPAddress + "/parv/SF.SYS/68");
+                                    xp4 = WebFetchDebug(wtzz, "http://" + IPAddress + "/parv/SF.SYS/69");
 
                                     if (WaitingToReset == 0)
                                     {

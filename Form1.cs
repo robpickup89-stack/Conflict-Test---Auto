@@ -159,6 +159,10 @@ namespace Conflict_Test___Auto
             {
                 int rowIdx = conflictMatrix.Rows.Add();
                 conflictMatrix.Rows[rowIdx].HeaderCell.Value = Convert.ToChar(65 + i).ToString();
+                // Explicitly style each row header cell to ensure visibility
+                conflictMatrix.Rows[rowIdx].HeaderCell.Style.BackColor = Color.FromArgb(52, 58, 64);
+                conflictMatrix.Rows[rowIdx].HeaderCell.Style.ForeColor = Color.White;
+                conflictMatrix.Rows[rowIdx].HeaderCell.Style.Font = new System.Drawing.Font("Segoe UI", 8F, FontStyle.Bold);
 
                 // Set all cells to "-" initially (no conflict)
                 // Black out diagonal cells (same phase to same phase)

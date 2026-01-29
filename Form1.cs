@@ -677,6 +677,13 @@ namespace Conflict_Test___Auto
 
                                     ConflictMessage = 0;
                                 }
+
+                                // Write port immediately when phase turns green to trigger conflict
+                                PortWrite(ConflictFromPhase[i]);
+                                Thread.Sleep(2000);
+                                PortWrite(ConflictToPhase[i]);
+                                Thread.Sleep(2000);
+
                                 // Check fault in log matches conflict
                                 System.Net.WebClient wx = new System.Net.WebClient();
                                 string FaultLogData = WebFetchDebug(wx, "http://" + IPAddress + "/vi?fmt=<t*FAULTLOG/>\n");
@@ -714,12 +721,6 @@ namespace Conflict_Test___Auto
                                         }
                                     }
 
-                                    Thread.Sleep(2000);
-
-                                    PortWrite(ConflictFromPhase[i]);
-                                    Thread.Sleep(2000);
-
-                                    PortWrite(ConflictToPhase[i]);
                                     Thread.Sleep(2000);
                                 }
 

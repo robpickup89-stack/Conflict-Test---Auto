@@ -417,7 +417,7 @@ namespace Conflict_Test___Auto
 
             if (IPAddress == "")
             {
-                MessageBox.Show("Please enter IP Address", "Data Issue", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(this, "Please enter IP Address", "Data Issue", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 textBox1.BackColor = Color.LightYellow;
             }
             else if (PingHost(IPAddress) == true)
@@ -567,22 +567,29 @@ namespace Conflict_Test___Auto
                     {
                         try
                         {
-                            WebFetchDebug(wq1, "http://" + IPAddress + "/parv/SF.SYS/LEV3?val=9999");
-                            lev3SetSuccess = true;
-                            break;
+                            string lev3Response = WebFetchDebug(wq1, "http://" + IPAddress + "/parv/SF.SYS/LEV3?val=9999");
+                            if (lev3Response.Trim() == "9999")
+                            {
+                                lev3SetSuccess = true;
+                                break;
+                            }
+                            else
+                            {
+                                Debug.WriteLine("LEV3 set attempt " + lev3Attempt + " returned unexpected value: " + lev3Response);
+                            }
                         }
                         catch (System.Net.WebException ex)
                         {
                             Debug.WriteLine("LEV3 set attempt " + lev3Attempt + " failed: " + ex.Message);
-                            if (lev3Attempt < 5)
-                            {
-                                Thread.Sleep(2000); // Wait before retry
-                            }
+                        }
+                        if (lev3Attempt < 5)
+                        {
+                            Thread.Sleep(2000); // Wait before retry
                         }
                     }
                     if (!lev3SetSuccess)
                     {
-                        MessageBox.Show("Unable to set Manual Level 3 after 5 attempts - authentication failed.\nPlease ensure Level 3 is set manually on the controller.", "Authentication Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        MessageBox.Show(this, "Unable to set Manual Level 3 after 5 attempts.\nPlease ensure Level 3 is set manually on the controller.", "Level 3 Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     }
                     string LEV3 = WebFetchDebug(wq1, "http://" + IPAddress + "/parv/SF.SYS/96");
 
@@ -650,7 +657,7 @@ namespace Conflict_Test___Auto
 
                                 while (Convert.ToChar(Int32.Parse(LEV3)) < 300)
                                 {
-                                    MessageBox.Show("Please press Level 3 Button", "No Level 3", MessageBoxButtons.OK, MessageBoxIcon.Stop);
+                                    MessageBox.Show(this, "Please press Level 3 Button", "No Level 3", MessageBoxButtons.OK, MessageBoxIcon.Stop);
                                     Thread.Sleep(3000); // Wait before re-checking Level 3
                                     LEV3 = WebFetchDebug(wqLev3Check, "http://" + IPAddress + "/parv/SF.SYS/96");
                                 }
@@ -925,18 +932,18 @@ namespace Conflict_Test___Auto
 
 
 
-                        MessageBox.Show("Conflicts Tested Successfully " + ConflictCount + "\nConflicts Failed OMS Test: " + OMSErrors + "\n Please Review Results", "Conflicts Test Complete", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        MessageBox.Show(this, "Conflicts Tested Successfully " + ConflictCount + "\nConflicts Failed OMS Test: " + OMSErrors + "\n Please Review Results", "Conflicts Test Complete", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     }
                 }
                 else
                 {
-                    MessageBox.Show("Number of phases exceeds limt of " + MaxOutputs + "\nThis site has " + (NumberOfPhases - NumberOfDummyPhases) + " real phases", "Site too large to test", MessageBoxButtons.OK, MessageBoxIcon.Stop);
+                    MessageBox.Show(this, "Number of phases exceeds limt of " + MaxOutputs + "\nThis site has " + (NumberOfPhases - NumberOfDummyPhases) + " real phases", "Site too large to test", MessageBoxButtons.OK, MessageBoxIcon.Stop);
                 }
 
             }
             else
             {
-                MessageBox.Show("Unable to reach PTC-1 \n @" + IPAddress + "\n\nPlease format IP as below\n10.164.95.201", "Unable to Ping", MessageBoxButtons.OK, MessageBoxIcon.Stop);
+                MessageBox.Show(this, "Unable to reach PTC-1 \n @" + IPAddress + "\n\nPlease format IP as below\n10.164.95.201", "Unable to Ping", MessageBoxButtons.OK, MessageBoxIcon.Stop);
             }
 
         }

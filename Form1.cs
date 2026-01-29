@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Windows.Forms;
 using System.IO;
 using System.Diagnostics;
+using System.Net;
 using System.Net.NetworkInformation;
 using System.IO.Ports;
 using System.ComponentModel;
@@ -386,6 +387,39 @@ namespace Conflict_Test___Auto
             return response;
         }
 
+        /// <summary>
+        /// Downloads a string from the specified URL with cookie support for session management
+        /// </summary>
+        private string WebFetchWithCookies(CookieContainer cookies, string url)
+        {
+            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
+            request.CookieContainer = cookies;
+            request.Method = "GET";
+
+            if (DebugMode)
+            {
+                textBox2.SelectionColor = Color.DarkCyan;
+                textBox2.AppendText("[DEBUG] >> GET " + url + " (with cookies)");
+                textBox2.AppendText(Environment.NewLine);
+            }
+
+            using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
+            using (StreamReader reader = new StreamReader(response.GetResponseStream()))
+            {
+                string responseText = reader.ReadToEnd();
+
+                if (DebugMode)
+                {
+                    textBox2.SelectionColor = Color.DarkMagenta;
+                    textBox2.AppendText("[DEBUG] << " + responseText.Replace("\n", " | ").Trim());
+                    textBox2.AppendText(Environment.NewLine);
+                    textBox2.SelectionColor = Color.Black;
+                }
+
+                return responseText;
+            }
+        }
+
         private async void worker_DoWork(object sender, DoWorkEventArgs e)
         {
 
@@ -544,30 +578,33 @@ namespace Conflict_Test___Auto
                     var ConflictMessage = 1;
                     var OMSErrors = 0;
 
-                    System.Net.WebClient wq1 = new System.Net.WebClient();
-                    wq1.Credentials = new System.Net.NetworkCredential("installer", "installer");
+                    // Use cookie container to maintain session state (like a browser does)
+                    CookieContainer sessionCookies = new CookieContainer();
+
+                    // First establish session by visiting HVI page
                     try
                     {
-                        WebFetchDebug(wq1, "http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=cell1000.hvi");
+                        WebFetchWithCookies(sessionCookies, "http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=cell1000.hvi");
                     }
-                    catch (System.Net.WebException)
+                    catch (WebException)
                     {
                         try
                         {
-                            WebFetchDebug(wq1, "http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=/frames/home/resetErrors");
+                            WebFetchWithCookies(sessionCookies, "http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=/frames/home/resetErrors");
                         }
-                        catch (System.Net.WebException ex)
+                        catch (WebException ex)
                         {
                             Debug.WriteLine("HVI page request failed: " + ex.Message);
                         }
                     }
+
                     // Try Level 3 access up to 5 times before reporting failure
                     bool lev3SetSuccess = false;
                     for (int lev3Attempt = 1; lev3Attempt <= 5; lev3Attempt++)
                     {
                         try
                         {
-                            string lev3Response = WebFetchDebug(wq1, "http://" + IPAddress + "/parv/SF.SYS/LEV3?val=9999");
+                            string lev3Response = WebFetchWithCookies(sessionCookies, "http://" + IPAddress + "/parv/SF.SYS/LEV3?val=9999");
                             if (lev3Response.Trim() == "9999")
                             {
                                 lev3SetSuccess = true;
@@ -578,7 +615,7 @@ namespace Conflict_Test___Auto
                                 Debug.WriteLine("LEV3 set attempt " + lev3Attempt + " returned unexpected value: " + lev3Response);
                             }
                         }
-                        catch (System.Net.WebException ex)
+                        catch (WebException ex)
                         {
                             Debug.WriteLine("LEV3 set attempt " + lev3Attempt + " failed: " + ex.Message);
                         }
@@ -591,7 +628,7 @@ namespace Conflict_Test___Auto
                     {
                         MessageBox.Show(this, "Unable to set Manual Level 3 after 5 attempts.\nPlease ensure Level 3 is set manually on the controller.", "Level 3 Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     }
-                    string LEV3 = WebFetchDebug(wq1, "http://" + IPAddress + "/parv/SF.SYS/96");
+                    string LEV3 = WebFetchWithCookies(sessionCookies, "http://" + IPAddress + "/parv/SF.SYS/96");
 
                     // Reboot controller before starting test to ensure clean state
                     System.Net.WebClient wqReboot = new System.Net.WebClient();

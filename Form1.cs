@@ -557,14 +557,28 @@ namespace Conflict_Test___Auto
                             Debug.WriteLine("HVI page request failed: " + ex.Message);
                         }
                     }
-                    try
+                    // Try Level 3 access up to 5 times before reporting failure
+                    bool lev3SetSuccess = false;
+                    for (int lev3Attempt = 1; lev3Attempt <= 5; lev3Attempt++)
                     {
-                        WebFetchDebug(wq1, "http://" + IPAddress + "/parv/SF.SYS/LEV3?val=9999");
+                        try
+                        {
+                            WebFetchDebug(wq1, "http://" + IPAddress + "/parv/SF.SYS/LEV3?val=9999");
+                            lev3SetSuccess = true;
+                            break;
+                        }
+                        catch (System.Net.WebException ex)
+                        {
+                            Debug.WriteLine("LEV3 set attempt " + lev3Attempt + " failed: " + ex.Message);
+                            if (lev3Attempt < 5)
+                            {
+                                Thread.Sleep(2000); // Wait before retry
+                            }
+                        }
                     }
-                    catch (System.Net.WebException ex)
+                    if (!lev3SetSuccess)
                     {
-                        Debug.WriteLine("LEV3 set request failed (401 auth may be required): " + ex.Message);
-                        MessageBox.Show("Unable to set Manual Level 3 - authentication failed.\nPlease ensure Level 3 is set manually on the controller.", "Authentication Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        MessageBox.Show("Unable to set Manual Level 3 after 5 attempts - authentication failed.\nPlease ensure Level 3 is set manually on the controller.", "Authentication Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     }
                     string LEV3 = WebFetchDebug(wq1, "http://" + IPAddress + "/parv/SF.SYS/96");
 
@@ -663,11 +677,48 @@ namespace Conflict_Test___Auto
                                 System.Net.WebClient wx = new System.Net.WebClient();
                                 string FaultLogData = WebFetchDebug(wx, "http://" + IPAddress + "/vi?fmt=<t*FAULTLOG/>\n");
 
-                                while (((!FaultLogData.Contains("OMS ERR G" + ConflictToPhase[i])) && (!FaultLogData.Contains("OMS ERR G0" + ConflictToPhase[i])))  && (StopStart == 0))
+                                bool omsTestPassed = false;
+                                bool omsWrongPhaseDetected = false;
+                                string wrongPhaseFound = "";
+                                int omsRetryCount = 0;
+                                const int maxOmsRetries = 5;
+
+                                while (!omsTestPassed && !omsWrongPhaseDetected && (StopStart == 0))
                                 {
-                                    // Debug.WriteLine(NumberOfConflicts);
-                                    // Debug.WriteLine(i);
                                     FaultLogData = WebFetchDebug(wx, "http://" + IPAddress + "/vi?fmt=<t*FAULTLOG/>\n");
+
+                                    // Check if expected OMS ERR is in fault log (PASS condition)
+                                    if (FaultLogData.Contains("OMS ERR G" + ConflictToPhase[i]) || FaultLogData.Contains("OMS ERR G0" + ConflictToPhase[i]))
+                                    {
+                                        omsTestPassed = true;
+                                        break;
+                                    }
+
+                                    // Check if ANY OMS ERR is present but for wrong phase (FAIL condition)
+                                    // Use regex to find OMS ERR G followed by digits
+                                    System.Text.RegularExpressions.Match omsMatch = System.Text.RegularExpressions.Regex.Match(FaultLogData, @"OMS ERR G(\d+)");
+                                    if (omsMatch.Success)
+                                    {
+                                        string foundPhase = omsMatch.Groups[1].Value;
+                                        string expectedPhase = ConflictToPhase[i];
+                                        // Normalize for comparison (e.g., "02" vs "2")
+                                        if (foundPhase.TrimStart('0') != expectedPhase.TrimStart('0'))
+                                        {
+                                            omsRetryCount++;
+                                            Debug.WriteLine("OMS ERR wrong phase detected: G" + foundPhase + " (expected G" + expectedPhase + "), attempt " + omsRetryCount + " of " + maxOmsRetries);
+
+                                            if (omsRetryCount >= maxOmsRetries)
+                                            {
+                                                omsWrongPhaseDetected = true;
+                                                wrongPhaseFound = foundPhase;
+                                                break;
+                                            }
+
+                                            // Reset controller and retry
+                                            PortWrite("0");
+                                            Thread.Sleep(2000);
+                                        }
+                                    }
 
                                     Thread.Sleep(2000);
 
@@ -676,10 +727,9 @@ namespace Conflict_Test___Auto
 
                                     PortWrite(ConflictToPhase[i]);
                                     Thread.Sleep(2000);
-
                                 }
 
-                                if (StopStart == 0)
+                                if (omsTestPassed && StopStart == 0)
                                 {
                                     // Update matrix with PASS result
                                     UpdateMatrixResult(Int32.Parse(ConflictFromPhase[i]), Int32.Parse(ConflictToPhase[i]), true);
@@ -692,7 +742,46 @@ namespace Conflict_Test___Auto
                                     textBox2.AppendText(" | OMS G0" + ConflictToPhase[i] + " in Fault Log");
                                     textBox2.AppendText(Environment.NewLine);
                                 }
-                                else
+                                else if (omsWrongPhaseDetected && StopStart == 0)
+                                {
+                                    // Update matrix with FAIL result (wrong OMS phase detected)
+                                    UpdateMatrixResult(Int32.Parse(ConflictFromPhase[i]), Int32.Parse(ConflictToPhase[i]), false);
+                                    OMSErrors++;
+
+                                    textBox2.AppendText("Conflict From Phase: " + Convert.ToChar(Int32.Parse(ConflictFromPhase[i]) + 64) + " To Phase: " + Convert.ToChar(Int32.Parse(ConflictToPhase[i]) + 64));
+                                    textBox2.AppendText(" | ");
+                                    textBox2.SelectionColor = Color.Red;
+                                    textBox2.AppendText("\u2718 Failed");
+                                    textBox2.SelectionColor = Color.Black;
+                                    textBox2.AppendText(" | Wrong OMS ERR G" + wrongPhaseFound + " (expected G0" + ConflictToPhase[i] + ")");
+                                    textBox2.AppendText(Environment.NewLine);
+
+                                    // Reset controller and move to next test
+                                    PortWrite("0");
+                                    System.Net.WebClient wqReset = new System.Net.WebClient();
+                                    try
+                                    {
+                                        WebFetchDebug(wqReset, "http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=cell1000.hvi&uf=MACRST.F");
+                                    }
+                                    catch (System.Net.WebException)
+                                    {
+                                        try
+                                        {
+                                            WebFetchDebug(wqReset, "http://" + IPAddress + "/hvi?file=editor/parseData&uic=3145&page=/frames/home/resetErrors&uf=MACRST.F");
+                                        }
+                                        catch (System.Net.WebException ex)
+                                        {
+                                            Debug.WriteLine("Reset after wrong OMS failed: " + ex.Message);
+                                        }
+                                    }
+                                    Thread.Sleep(5000); // Wait for controller to reset
+                                    textBox2.AppendText("Controller Restarting after failed test");
+                                    textBox2.AppendText(Environment.NewLine);
+                                    ConflictMessage = 1;
+                                    WaitingToReset = 0;
+                                    continue; // Move to next test
+                                }
+                                else if (StopStart != 0)
                                 {
                                     // Update matrix with FAIL result (stopped by user)
                                     UpdateMatrixResult(Int32.Parse(ConflictFromPhase[i]), Int32.Parse(ConflictToPhase[i]), false);

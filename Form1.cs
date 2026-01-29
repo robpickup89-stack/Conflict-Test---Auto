@@ -125,11 +125,22 @@ namespace Conflict_Test___Auto
                 conflictMatrix.Rows[rowIdx].HeaderCell.Value = Convert.ToChar(65 + i).ToString();
 
                 // Set all cells to "-" initially (no conflict)
+                // Black out diagonal cells (same phase to same phase)
                 for (int j = 0; j < phaseCount; j++)
                 {
-                    conflictMatrix.Rows[rowIdx].Cells[j].Value = "-";
-                    conflictMatrix.Rows[rowIdx].Cells[j].Style.BackColor = Color.FromArgb(245, 245, 245);
-                    conflictMatrix.Rows[rowIdx].Cells[j].Style.ForeColor = Color.LightGray;
+                    if (i == j)
+                    {
+                        // Diagonal cell - black out (A to A, B to B, etc.)
+                        conflictMatrix.Rows[rowIdx].Cells[j].Value = "";
+                        conflictMatrix.Rows[rowIdx].Cells[j].Style.BackColor = Color.Black;
+                        conflictMatrix.Rows[rowIdx].Cells[j].Style.ForeColor = Color.Black;
+                    }
+                    else
+                    {
+                        conflictMatrix.Rows[rowIdx].Cells[j].Value = "-";
+                        conflictMatrix.Rows[rowIdx].Cells[j].Style.BackColor = Color.FromArgb(245, 245, 245);
+                        conflictMatrix.Rows[rowIdx].Cells[j].Style.ForeColor = Color.LightGray;
+                    }
                 }
             }
 
@@ -273,22 +284,31 @@ namespace Conflict_Test___Auto
                 sb.Append($" {Convert.ToChar(65 + i)}  ");
                 for (int j = 0; j < MatrixPhaseCount; j++)
                 {
-                    string cell = MatrixResults[i, j] switch
+                    string cell;
+                    if (i == j)
                     {
-                        -1 => " - ",
-                        0 => " O ",  // Pending
-                        1 => " * ",  // Running
-                        2 => " P ",  // Pass
-                        3 => " F ",  // Fail
-                        _ => " ? "
-                    };
+                        // Diagonal cell - blacked out
+                        cell = " X ";
+                    }
+                    else
+                    {
+                        cell = MatrixResults[i, j] switch
+                        {
+                            -1 => " - ",
+                            0 => " O ",  // Pending
+                            1 => " * ",  // Running
+                            2 => " P ",  // Pass
+                            3 => " F ",  // Fail
+                            _ => " ? "
+                        };
+                    }
                     sb.Append(cell + " ");
                 }
                 sb.AppendLine();
             }
 
             sb.AppendLine();
-            sb.AppendLine("Legend: P = Pass, F = Fail, O = Pending, - = No Conflict");
+            sb.AppendLine("Legend: P = Pass, F = Fail, O = Pending, - = No Conflict, X = N/A (same phase)");
             sb.AppendLine();
             sb.AppendLine("CONFLICT RUN ORDER");
             sb.AppendLine(new string('=', 50));
@@ -1140,28 +1160,38 @@ namespace Conflict_Test___Auto
                                 BaseColor bgColor;
                                 BaseColor textColor;
 
-                                switch (MatrixResults[i, j])
+                                if (i == j)
                                 {
-                                    case 2: // Pass
-                                        cellText = "P";
-                                        bgColor = new BaseColor(212, 237, 218);
-                                        textColor = new BaseColor(21, 87, 36);
-                                        break;
-                                    case 3: // Fail
-                                        cellText = "F";
-                                        bgColor = new BaseColor(248, 215, 218);
-                                        textColor = new BaseColor(114, 28, 36);
-                                        break;
-                                    case 0: // Pending
-                                        cellText = "O";
-                                        bgColor = new BaseColor(255, 243, 205);
-                                        textColor = new BaseColor(133, 100, 4);
-                                        break;
-                                    default: // No conflict
-                                        cellText = "-";
-                                        bgColor = new BaseColor(245, 245, 245);
-                                        textColor = new BaseColor(180, 180, 180);
-                                        break;
+                                    // Diagonal cell - blacked out (same phase to same phase)
+                                    cellText = "";
+                                    bgColor = BaseColor.BLACK;
+                                    textColor = BaseColor.BLACK;
+                                }
+                                else
+                                {
+                                    switch (MatrixResults[i, j])
+                                    {
+                                        case 2: // Pass
+                                            cellText = "P";
+                                            bgColor = new BaseColor(212, 237, 218);
+                                            textColor = new BaseColor(21, 87, 36);
+                                            break;
+                                        case 3: // Fail
+                                            cellText = "F";
+                                            bgColor = new BaseColor(248, 215, 218);
+                                            textColor = new BaseColor(114, 28, 36);
+                                            break;
+                                        case 0: // Pending
+                                            cellText = "O";
+                                            bgColor = new BaseColor(255, 243, 205);
+                                            textColor = new BaseColor(133, 100, 4);
+                                            break;
+                                        default: // No conflict
+                                            cellText = "-";
+                                            bgColor = new BaseColor(245, 245, 245);
+                                            textColor = new BaseColor(180, 180, 180);
+                                            break;
+                                    }
                                 }
 
                                 Font cellFont = new Font(iTextSharp.text.Font.FontFamily.HELVETICA, 8, iTextSharp.text.Font.BOLD, textColor);
@@ -1177,7 +1207,7 @@ namespace Conflict_Test___Auto
                         doc.Add(matrixTable);
 
                         // Add legend
-                        Paragraph legend = new Paragraph("Legend: P = Pass, F = Fail, O = Pending, - = No Conflict", smallFont);
+                        Paragraph legend = new Paragraph("Legend: P = Pass, F = Fail, O = Pending, - = No Conflict, Black = N/A (same phase)", smallFont);
                         legend.SpacingBefore = 10;
                         doc.Add(legend);
 

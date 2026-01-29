@@ -390,17 +390,11 @@ namespace Conflict_Test___Auto
         /// <summary>
         /// Downloads a string from the specified URL with cookie support for session management
         /// </summary>
-        private string WebFetchWithCookies(CookieContainer cookies, string url, NetworkCredential credentials = null)
+        private string WebFetchWithCookies(CookieContainer cookies, string url)
         {
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
             request.CookieContainer = cookies;
             request.Method = "GET";
-
-            if (credentials != null)
-            {
-                request.Credentials = credentials;
-                request.PreAuthenticate = true;
-            }
 
             if (DebugMode)
             {
@@ -586,18 +580,17 @@ namespace Conflict_Test___Auto
 
                     // Use cookie container to maintain session state (like a browser does)
                     CookieContainer sessionCookies = new CookieContainer();
-                    NetworkCredential credentials = new NetworkCredential("installer", "installer");
 
                     // First establish session by visiting HVI page
                     try
                     {
-                        WebFetchWithCookies(sessionCookies, "http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=cell1000.hvi", credentials);
+                        WebFetchWithCookies(sessionCookies, "http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=cell1000.hvi");
                     }
                     catch (WebException)
                     {
                         try
                         {
-                            WebFetchWithCookies(sessionCookies, "http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=/frames/home/resetErrors", credentials);
+                            WebFetchWithCookies(sessionCookies, "http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=/frames/home/resetErrors");
                         }
                         catch (WebException ex)
                         {
@@ -611,7 +604,7 @@ namespace Conflict_Test___Auto
                     {
                         try
                         {
-                            string lev3Response = WebFetchWithCookies(sessionCookies, "http://" + IPAddress + "/parv/SF.SYS/LEV3?val=9999", credentials);
+                            string lev3Response = WebFetchWithCookies(sessionCookies, "http://" + IPAddress + "/parv/SF.SYS/LEV3?val=9999");
                             if (lev3Response.Trim() == "9999")
                             {
                                 lev3SetSuccess = true;
@@ -635,7 +628,7 @@ namespace Conflict_Test___Auto
                     {
                         MessageBox.Show(this, "Unable to set Manual Level 3 after 5 attempts.\nPlease ensure Level 3 is set manually on the controller.", "Level 3 Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     }
-                    string LEV3 = WebFetchWithCookies(sessionCookies, "http://" + IPAddress + "/parv/SF.SYS/96", credentials);
+                    string LEV3 = WebFetchWithCookies(sessionCookies, "http://" + IPAddress + "/parv/SF.SYS/96");
 
                     // Reboot controller before starting test to ensure clean state
                     System.Net.WebClient wqReboot = new System.Net.WebClient();

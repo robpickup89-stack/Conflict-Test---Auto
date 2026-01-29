@@ -426,7 +426,7 @@ namespace Conflict_Test___Auto
                 // Get Conflicts
                 System.Net.WebClient wc = new System.Net.WebClient();
                 string webDataConflicts = WebFetchDebug(wc, "http://" + IPAddress + "/parv/OPPOSE.R1/");
-                string[] webDataSplitConflicts = webDataConflicts.Split('\n');
+                string[] webDataSplitConflicts = webDataConflicts.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
                 var NumberOfConflicts = webDataSplitConflicts.Length;
 
@@ -434,7 +434,7 @@ namespace Conflict_Test___Auto
                 // Get Phases Letters
                 System.Net.WebClient wt = new System.Net.WebClient();
                 string webDataPhases = WebFetchDebug(wt, "http://" + IPAddress + "/parv/XSG.CSC/");
-                string[] webDataSplitPhases = webDataPhases.Split('\n');
+                string[] webDataSplitPhases = webDataPhases.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
                 var NumberOfPhases = webDataSplitPhases.Length;
                 int NumberOfDummyPhases = DummyPhases(textBox1.Text, NumberOfPhases);
@@ -665,7 +665,7 @@ namespace Conflict_Test___Auto
                                 // Get Phases Letters
                                 System.Net.WebClient wq = new System.Net.WebClient();
                                 string webDataPhasesColour = WebFetchDebug(wq, "http://" + IPAddress + "/parv/XSG.CSC/");
-                                string[] webDataSplitPhasesColour = webDataPhasesColour.Split('\n');
+                                string[] webDataSplitPhasesColour = webDataPhasesColour.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
                                 // Mark this conflict as currently running in the matrix
                                 SetMatrixRunning(Int32.Parse(ConflictFromPhase[i]), Int32.Parse(ConflictToPhase[i]));
@@ -675,7 +675,7 @@ namespace Conflict_Test___Auto
                                     // Get Phases Letters
                                     System.Net.WebClient wxp = new System.Net.WebClient();
                                     webDataPhasesColour = WebFetchDebug(wxp, "http://" + IPAddress + "/parv/XSG.CSC/");
-                                    webDataSplitPhasesColour = webDataPhasesColour.Split('\n');
+                                    webDataSplitPhasesColour = webDataPhasesColour.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
                                     if (ConflictMessage == 1)
                                     {
                                         textBox2.AppendText("Looking for Conflict From Phase: " + Convert.ToChar(Int32.Parse(ConflictFromPhase[i]) + 64) + " To Phase: " + Convert.ToChar(Int32.Parse(ConflictToPhase[i]) + 64));
@@ -804,7 +804,7 @@ namespace Conflict_Test___Auto
                                 string xp3 = WebFetchDebug(wtzz, "http://" + IPAddress + "/parv/SF.SYS/68");
                                 string xp4 = WebFetchDebug(wtzz, "http://" + IPAddress + "/parv/SF.SYS/69");
                                 string Streams = WebFetchDebug(wtzz, "http://" + IPAddress + "/parv/STEPM.STS");
-                                int StreamsNumbers = Streams.Split('\n').Length;
+                                int StreamsNumbers = Streams.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries).Length;
 
 
 

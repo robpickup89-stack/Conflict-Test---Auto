@@ -684,8 +684,6 @@ namespace Conflict_Test___Auto
                                 bool omsTestPassed = false;
                                 bool omsWrongPhaseDetected = false;
                                 string wrongPhaseFound = "";
-                                int omsRetryCount = 0;
-                                const int maxOmsRetries = 5;
 
                                 while (!omsTestPassed && !omsWrongPhaseDetected && (StopStart == 0))
                                 {
@@ -698,7 +696,7 @@ namespace Conflict_Test___Auto
                                         break;
                                     }
 
-                                    // Check if ANY OMS ERR is present but for wrong phase (FAIL condition)
+                                    // Check if ANY OMS ERR is present but for wrong phase (FAIL condition - no retries)
                                     // Use regex to find OMS ERR G followed by digits
                                     System.Text.RegularExpressions.Match omsMatch = System.Text.RegularExpressions.Regex.Match(FaultLogData, @"OMS ERR G(\d+)");
                                     if (omsMatch.Success)
@@ -708,19 +706,11 @@ namespace Conflict_Test___Auto
                                         // Normalize for comparison (e.g., "02" vs "2")
                                         if (foundPhase.TrimStart('0') != expectedPhase.TrimStart('0'))
                                         {
-                                            omsRetryCount++;
-                                            Debug.WriteLine("OMS ERR wrong phase detected: G" + foundPhase + " (expected G" + expectedPhase + "), attempt " + omsRetryCount + " of " + maxOmsRetries);
-
-                                            if (omsRetryCount >= maxOmsRetries)
-                                            {
-                                                omsWrongPhaseDetected = true;
-                                                wrongPhaseFound = foundPhase;
-                                                break;
-                                            }
-
-                                            // Reset controller and retry
-                                            PortWrite("0");
-                                            Thread.Sleep(2000);
+                                            // Wrong phase detected - fail immediately and move to next test
+                                            Debug.WriteLine("OMS ERR wrong phase detected: G" + foundPhase + " (expected G" + expectedPhase + ") - FAIL");
+                                            omsWrongPhaseDetected = true;
+                                            wrongPhaseFound = foundPhase;
+                                            break;
                                         }
                                     }
 

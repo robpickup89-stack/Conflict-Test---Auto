@@ -582,19 +582,27 @@ namespace Conflict_Test___Auto
                     CookieContainer sessionCookies = new CookieContainer();
 
                     // First establish session by visiting HVI page
+                    // Try new format first, then fall back to older format
                     try
                     {
-                        WebFetchWithCookies(sessionCookies, "http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=cell1000.hvi");
+                        WebFetchWithCookies(sessionCookies, "http://" + IPAddress + "/hvi?file=/frames/home/homePage");
                     }
                     catch (WebException)
                     {
                         try
                         {
-                            WebFetchWithCookies(sessionCookies, "http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=/frames/home/resetErrors");
+                            WebFetchWithCookies(sessionCookies, "http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=cell1000.hvi");
                         }
-                        catch (WebException ex)
+                        catch (WebException)
                         {
-                            Debug.WriteLine("HVI page request failed: " + ex.Message);
+                            try
+                            {
+                                WebFetchWithCookies(sessionCookies, "http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=/frames/home/resetErrors");
+                            }
+                            catch (WebException ex)
+                            {
+                                Debug.WriteLine("HVI page request failed: " + ex.Message);
+                            }
                         }
                     }
 
@@ -631,20 +639,28 @@ namespace Conflict_Test___Auto
                     string LEV3 = WebFetchWithCookies(sessionCookies, "http://" + IPAddress + "/parv/SF.SYS/96");
 
                     // Reboot controller before starting test to ensure clean state
+                    // Try new format first, then fall back to older formats
                     System.Net.WebClient wqReboot = new System.Net.WebClient();
                     try
                     {
-                        WebFetchDebug(wqReboot, "http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=cell1000.hvi&uf=MACRST.F");
+                        WebFetchDebug(wqReboot, "http://" + IPAddress + "/hvi?file=/frames/home/homePage&uf=MACRST.F");
                     }
                     catch (System.Net.WebException)
                     {
                         try
                         {
-                            WebFetchDebug(wqReboot, "http://" + IPAddress + "/hvi?file=editor/parseData&uic=3145&page=/frames/home/resetErrors&uf=MACRST.F");
+                            WebFetchDebug(wqReboot, "http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=cell1000.hvi&uf=MACRST.F");
                         }
-                        catch (System.Net.WebException ex)
+                        catch (System.Net.WebException)
                         {
-                            Debug.WriteLine("Initial MACRST.F reset request failed: " + ex.Message);
+                            try
+                            {
+                                WebFetchDebug(wqReboot, "http://" + IPAddress + "/hvi?file=editor/parseData&uic=3145&page=/frames/home/resetErrors&uf=MACRST.F");
+                            }
+                            catch (System.Net.WebException ex)
+                            {
+                                Debug.WriteLine("Initial MACRST.F reset request failed: " + ex.Message);
+                            }
                         }
                     }
                     Thread.Sleep(5000); // Wait for controller to reboot before starting
@@ -796,21 +812,29 @@ namespace Conflict_Test___Auto
                                     textBox2.AppendText(Environment.NewLine);
 
                                     // Reset controller and move to next test
+                                    // Try new format first, then fall back to older formats
                                     PortWrite("0");
                                     System.Net.WebClient wqReset = new System.Net.WebClient();
                                     try
                                     {
-                                        WebFetchDebug(wqReset, "http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=cell1000.hvi&uf=MACRST.F");
+                                        WebFetchDebug(wqReset, "http://" + IPAddress + "/hvi?file=/frames/home/homePage&uf=MACRST.F");
                                     }
                                     catch (System.Net.WebException)
                                     {
                                         try
                                         {
-                                            WebFetchDebug(wqReset, "http://" + IPAddress + "/hvi?file=editor/parseData&uic=3145&page=/frames/home/resetErrors&uf=MACRST.F");
+                                            WebFetchDebug(wqReset, "http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=cell1000.hvi&uf=MACRST.F");
                                         }
-                                        catch (System.Net.WebException ex)
+                                        catch (System.Net.WebException)
                                         {
-                                            Debug.WriteLine("Reset after wrong OMS failed: " + ex.Message);
+                                            try
+                                            {
+                                                WebFetchDebug(wqReset, "http://" + IPAddress + "/hvi?file=editor/parseData&uic=3145&page=/frames/home/resetErrors&uf=MACRST.F");
+                                            }
+                                            catch (System.Net.WebException ex)
+                                            {
+                                                Debug.WriteLine("Reset after wrong OMS failed: " + ex.Message);
+                                            }
                                         }
                                     }
                                     Thread.Sleep(5000); // Wait for controller to reset
@@ -849,22 +873,30 @@ namespace Conflict_Test___Auto
                                 {
 
                                     // System.Threading.Thread.Sleep(3000);
+                                    // Try new format first, then fall back to older formats
                                     PortWrite("0");
                                     ConflictMessage = 1;
                                     System.Net.WebClient wq1x = new System.Net.WebClient();
                                     try
                                     {
-                                        WebFetchDebug(wq1x, "http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=cell1000.hvi&uf=MACRST.F");
+                                        WebFetchDebug(wq1x, "http://" + IPAddress + "/hvi?file=/frames/home/homePage&uf=MACRST.F");
                                     }
                                     catch (System.Net.WebException)
                                     {
                                         try
                                         {
-                                            WebFetchDebug(wq1x, "http://" + IPAddress + "/hvi?file=editor/parseData&uic=3145&page=/frames/home/resetErrors&uf=MACRST.F");
+                                            WebFetchDebug(wq1x, "http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=cell1000.hvi&uf=MACRST.F");
                                         }
-                                        catch (System.Net.WebException ex)
+                                        catch (System.Net.WebException)
                                         {
-                                            Debug.WriteLine("HVI macro reset request failed: " + ex.Message);
+                                            try
+                                            {
+                                                WebFetchDebug(wq1x, "http://" + IPAddress + "/hvi?file=editor/parseData&uic=3145&page=/frames/home/resetErrors&uf=MACRST.F");
+                                            }
+                                            catch (System.Net.WebException ex)
+                                            {
+                                                Debug.WriteLine("HVI macro reset request failed: " + ex.Message);
+                                            }
                                         }
                                     }
 
@@ -891,6 +923,7 @@ namespace Conflict_Test___Auto
                                 WaitingToReset = 0;
 
                                 // Reset controller after the first conflict test
+                                // Try new format first, then fall back to older formats
                                 if (ConflictCount == 1)
                                 {
                                     textBox2.AppendText("Resetting controller after first conflict test...");
@@ -899,17 +932,24 @@ namespace Conflict_Test___Auto
                                     System.Net.WebClient wqFirstReset = new System.Net.WebClient();
                                     try
                                     {
-                                        WebFetchDebug(wqFirstReset, "http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=cell1000.hvi&uf=MACRST.F");
+                                        WebFetchDebug(wqFirstReset, "http://" + IPAddress + "/hvi?file=/frames/home/homePage&uf=MACRST.F");
                                     }
                                     catch (System.Net.WebException)
                                     {
                                         try
                                         {
-                                            WebFetchDebug(wqFirstReset, "http://" + IPAddress + "/hvi?file=editor/parseData&uic=3145&page=/frames/home/resetErrors&uf=MACRST.F");
+                                            WebFetchDebug(wqFirstReset, "http://" + IPAddress + "/hvi?file=data.hvi&uic=3145&page=cell1000.hvi&uf=MACRST.F");
                                         }
-                                        catch (System.Net.WebException ex)
+                                        catch (System.Net.WebException)
                                         {
-                                            Debug.WriteLine("First conflict reset request failed: " + ex.Message);
+                                            try
+                                            {
+                                                WebFetchDebug(wqFirstReset, "http://" + IPAddress + "/hvi?file=editor/parseData&uic=3145&page=/frames/home/resetErrors&uf=MACRST.F");
+                                            }
+                                            catch (System.Net.WebException ex)
+                                            {
+                                                Debug.WriteLine("First conflict reset request failed: " + ex.Message);
+                                            }
                                         }
                                     }
                                     Thread.Sleep(5000); // Wait for controller to reboot

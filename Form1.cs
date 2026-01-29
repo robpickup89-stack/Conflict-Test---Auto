@@ -20,6 +20,14 @@ namespace Conflict_Test___Auto
     {
 
         SerialPort port;
+        private Color startButtonIdleBackColor;
+        private Color startButtonIdleForeColor;
+        private Color startButtonIdleBorderColor;
+        private string startButtonIdleText;
+        private readonly Color startButtonRunningBackColor = Color.FromArgb(40, 167, 69);
+        private readonly Color startButtonRunningForeColor = Color.White;
+        private readonly Color startButtonRunningBorderColor = Color.FromArgb(25, 135, 84);
+        private const string StartButtonRunningText = "⏵ Running...";
 
         public Form1()
         {
@@ -40,6 +48,34 @@ namespace Conflict_Test___Auto
 
             this.ActiveControl = textBox1;
 
+            CacheStartButtonStyle();
+            UpdateStartButtonVisualState(false);
+        }
+
+        private void CacheStartButtonStyle()
+        {
+            startButtonIdleBackColor = button1.BackColor;
+            startButtonIdleForeColor = button1.ForeColor;
+            startButtonIdleBorderColor = button1.FlatAppearance.BorderColor;
+            startButtonIdleText = button1.Text;
+        }
+
+        private void UpdateStartButtonVisualState(bool isRunning)
+        {
+            if (isRunning)
+            {
+                button1.Text = StartButtonRunningText;
+                button1.BackColor = startButtonRunningBackColor;
+                button1.ForeColor = startButtonRunningForeColor;
+                button1.FlatAppearance.BorderColor = startButtonRunningBorderColor;
+            }
+            else
+            {
+                button1.Text = startButtonIdleText;
+                button1.BackColor = startButtonIdleBackColor;
+                button1.ForeColor = startButtonIdleForeColor;
+                button1.FlatAppearance.BorderColor = startButtonIdleBorderColor;
+            }
         }
 
         private void Form1_KeyDown(object sender, KeyEventArgs e)
@@ -775,34 +811,38 @@ namespace Conflict_Test___Auto
 
 
 
-                    string userName = System.Security.Principal.WindowsIdentity.GetCurrent().Name;
+                    if (StopStart == 0)
+                    {
+                        string userName = System.Security.Principal.WindowsIdentity.GetCurrent().Name;
 
-                    textBox2.AppendText(Environment.NewLine);
-                    textBox2.SelectionFont = new System.Drawing.Font(textBox2.Font, FontStyle.Bold);
-                    textBox2.AppendText("** Conflict Test Complete **");
-                    textBox2.AppendText(Environment.NewLine);
-                    textBox2.AppendText(Environment.NewLine);
-                    textBox2.AppendText("Conflicts Tested Successfully " + ConflictCount);
-                    textBox2.AppendText(Environment.NewLine);
-                    textBox2.AppendText("Conflicts Failed OMS Test: " + OMSErrors);
-                    textBox2.AppendText(Environment.NewLine);
-                    textBox2.AppendText(Environment.NewLine);
-                    textBox2.AppendText("End Time: " + DateTime.Now.ToString("h:mm:ss tt"));
-                    textBox2.AppendText(Environment.NewLine);
-                    textBox2.AppendText(Environment.NewLine);
-                    textBox2.AppendText("Test Run by: " + userName);
+                        textBox2.AppendText(Environment.NewLine);
+                        textBox2.SelectionFont = new System.Drawing.Font(textBox2.Font, FontStyle.Bold);
+                        textBox2.AppendText("** Conflict Test Complete **");
+                        textBox2.AppendText(Environment.NewLine);
+                        textBox2.AppendText(Environment.NewLine);
+                        textBox2.AppendText("Conflicts Tested Successfully " + ConflictCount);
+                        textBox2.AppendText(Environment.NewLine);
+                        textBox2.AppendText("Conflicts Failed OMS Test: " + OMSErrors);
+                        textBox2.AppendText(Environment.NewLine);
+                        textBox2.AppendText(Environment.NewLine);
+                        textBox2.AppendText("End Time: " + DateTime.Now.ToString("h:mm:ss tt"));
+                        textBox2.AppendText(Environment.NewLine);
+                        textBox2.AppendText(Environment.NewLine);
+                        textBox2.AppendText("Test Run by: " + userName);
 
-                    button1.Enabled = true;
-                    button3.Enabled = false;
-                    StopStart = 0;
-                    statusLabel.Text = "\u2714 Test complete - " + ConflictCount + " conflicts tested successfully";
-                    statusLabel.ForeColor = Color.FromArgb(40, 167, 69);
+                        button1.Enabled = true;
+                        button3.Enabled = false;
+                        UpdateStartButtonVisualState(false);
+                        StopStart = 0;
+                        statusLabel.Text = "\u2714 Test complete - " + ConflictCount + " conflicts tested successfully";
+                        statusLabel.ForeColor = Color.FromArgb(40, 167, 69);
 
-                    PortWrite("0");
+                        PortWrite("0");
 
 
 
-                    MessageBox.Show("Conflicts Tested Successfully " + ConflictCount + "\nConflicts Failed OMS Test: " + OMSErrors + "\n Please Review Results", "Conflicts Test Complete", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        MessageBox.Show("Conflicts Tested Successfully " + ConflictCount + "\nConflicts Failed OMS Test: " + OMSErrors + "\n Please Review Results", "Conflicts Test Complete", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
                 }
                 else
                 {
@@ -852,6 +892,10 @@ namespace Conflict_Test___Auto
 
         private void button1_Click(object sender, EventArgs e)
         {
+            StopStart = 0;
+            ConflictCount = 0;
+            WaitingToReset = 0;
+            UpdateStartButtonVisualState(true);
             button1.Enabled = false;
             button3.Enabled = true;
             statusLabel.Text = "Running conflict test...";
@@ -922,6 +966,7 @@ namespace Conflict_Test___Auto
             statusLabel.ForeColor = Color.FromArgb(220, 53, 69);
             button1.Enabled = true;
             button3.Enabled = false;
+            UpdateStartButtonVisualState(false);
         }
 
         private void button4_Click(object sender, EventArgs e)

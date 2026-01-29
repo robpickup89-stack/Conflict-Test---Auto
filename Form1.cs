@@ -82,6 +82,225 @@ namespace Conflict_Test___Auto
         // Debug mode - toggle with Ctrl+D
         public bool DebugMode = false;
 
+        // Matrix tracking: -1 = no conflict, 0 = pending, 1 = running, 2 = pass, 3 = fail
+        public int[,] MatrixResults;
+        public int MatrixPhaseCount = 0;
+
+        // Store conflict test order for documentation
+        public System.Collections.Generic.List<string> ConflictRunOrder = new System.Collections.Generic.List<string>();
+
+        /// <summary>
+        /// Initializes the conflict matrix DataGridView with phase columns and rows
+        /// </summary>
+        private void InitializeMatrix(int phaseCount)
+        {
+            MatrixPhaseCount = phaseCount;
+            MatrixResults = new int[phaseCount, phaseCount];
+            ConflictRunOrder.Clear();
+
+            // Initialize all to -1 (no conflict by default)
+            for (int i = 0; i < phaseCount; i++)
+                for (int j = 0; j < phaseCount; j++)
+                    MatrixResults[i, j] = -1;
+
+            // Clear and setup columns
+            conflictMatrix.Columns.Clear();
+            conflictMatrix.Rows.Clear();
+
+            // Add column headers (To phases: A, B, C...)
+            for (int i = 0; i < phaseCount; i++)
+            {
+                var col = new DataGridViewTextBoxColumn();
+                col.HeaderText = Convert.ToChar(65 + i).ToString(); // A, B, C...
+                col.Width = 28;
+                col.SortMode = DataGridViewColumnSortMode.NotSortable;
+                col.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+                conflictMatrix.Columns.Add(col);
+            }
+
+            // Add rows (From phases: A, B, C...)
+            for (int i = 0; i < phaseCount; i++)
+            {
+                int rowIdx = conflictMatrix.Rows.Add();
+                conflictMatrix.Rows[rowIdx].HeaderCell.Value = Convert.ToChar(65 + i).ToString();
+
+                // Set all cells to "-" initially (no conflict)
+                for (int j = 0; j < phaseCount; j++)
+                {
+                    conflictMatrix.Rows[rowIdx].Cells[j].Value = "-";
+                    conflictMatrix.Rows[rowIdx].Cells[j].Style.BackColor = Color.FromArgb(245, 245, 245);
+                    conflictMatrix.Rows[rowIdx].Cells[j].Style.ForeColor = Color.LightGray;
+                }
+            }
+
+            // Style the headers
+            conflictMatrix.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(52, 58, 64);
+            conflictMatrix.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
+            conflictMatrix.ColumnHeadersDefaultCellStyle.Font = new System.Drawing.Font("Segoe UI", 8F, FontStyle.Bold);
+            conflictMatrix.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+            conflictMatrix.RowHeadersDefaultCellStyle.BackColor = Color.FromArgb(52, 58, 64);
+            conflictMatrix.RowHeadersDefaultCellStyle.ForeColor = Color.White;
+            conflictMatrix.RowHeadersDefaultCellStyle.Font = new System.Drawing.Font("Segoe UI", 8F, FontStyle.Bold);
+        }
+
+        /// <summary>
+        /// Marks a conflict as pending test in the matrix
+        /// </summary>
+        private void SetMatrixPending(int fromPhase, int toPhase)
+        {
+            if (fromPhase < 1 || toPhase < 1 || fromPhase > MatrixPhaseCount || toPhase > MatrixPhaseCount)
+                return;
+
+            int row = fromPhase - 1;
+            int col = toPhase - 1;
+            MatrixResults[row, col] = 0; // Pending
+
+            if (conflictMatrix.InvokeRequired)
+            {
+                conflictMatrix.Invoke(new Action(() => {
+                    conflictMatrix.Rows[row].Cells[col].Value = "\u25CB"; // Circle - pending
+                    conflictMatrix.Rows[row].Cells[col].Style.BackColor = Color.FromArgb(255, 243, 205); // Light yellow
+                    conflictMatrix.Rows[row].Cells[col].Style.ForeColor = Color.FromArgb(133, 100, 4);
+                }));
+            }
+            else
+            {
+                conflictMatrix.Rows[row].Cells[col].Value = "\u25CB";
+                conflictMatrix.Rows[row].Cells[col].Style.BackColor = Color.FromArgb(255, 243, 205);
+                conflictMatrix.Rows[row].Cells[col].Style.ForeColor = Color.FromArgb(133, 100, 4);
+            }
+        }
+
+        /// <summary>
+        /// Marks a conflict as currently running in the matrix
+        /// </summary>
+        private void SetMatrixRunning(int fromPhase, int toPhase)
+        {
+            if (fromPhase < 1 || toPhase < 1 || fromPhase > MatrixPhaseCount || toPhase > MatrixPhaseCount)
+                return;
+
+            int row = fromPhase - 1;
+            int col = toPhase - 1;
+            MatrixResults[row, col] = 1; // Running
+
+            if (conflictMatrix.InvokeRequired)
+            {
+                conflictMatrix.Invoke(new Action(() => {
+                    conflictMatrix.Rows[row].Cells[col].Value = "\u25CF"; // Filled circle - running
+                    conflictMatrix.Rows[row].Cells[col].Style.BackColor = Color.FromArgb(204, 229, 255); // Light blue
+                    conflictMatrix.Rows[row].Cells[col].Style.ForeColor = Color.FromArgb(0, 64, 133);
+                }));
+            }
+            else
+            {
+                conflictMatrix.Rows[row].Cells[col].Value = "\u25CF";
+                conflictMatrix.Rows[row].Cells[col].Style.BackColor = Color.FromArgb(204, 229, 255);
+                conflictMatrix.Rows[row].Cells[col].Style.ForeColor = Color.FromArgb(0, 64, 133);
+            }
+        }
+
+        /// <summary>
+        /// Updates the matrix cell with pass/fail result
+        /// </summary>
+        private void UpdateMatrixResult(int fromPhase, int toPhase, bool passed)
+        {
+            if (fromPhase < 1 || toPhase < 1 || fromPhase > MatrixPhaseCount || toPhase > MatrixPhaseCount)
+                return;
+
+            int row = fromPhase - 1;
+            int col = toPhase - 1;
+            MatrixResults[row, col] = passed ? 2 : 3;
+
+            // Track run order
+            string result = passed ? "PASS" : "FAIL";
+            ConflictRunOrder.Add($"{Convert.ToChar(64 + fromPhase)}->{Convert.ToChar(64 + toPhase)}: {result}");
+
+            if (conflictMatrix.InvokeRequired)
+            {
+                conflictMatrix.Invoke(new Action(() => {
+                    if (passed)
+                    {
+                        conflictMatrix.Rows[row].Cells[col].Value = "\u2713"; // Checkmark
+                        conflictMatrix.Rows[row].Cells[col].Style.BackColor = Color.FromArgb(212, 237, 218); // Light green
+                        conflictMatrix.Rows[row].Cells[col].Style.ForeColor = Color.FromArgb(21, 87, 36);
+                    }
+                    else
+                    {
+                        conflictMatrix.Rows[row].Cells[col].Value = "\u2717"; // X mark
+                        conflictMatrix.Rows[row].Cells[col].Style.BackColor = Color.FromArgb(248, 215, 218); // Light red
+                        conflictMatrix.Rows[row].Cells[col].Style.ForeColor = Color.FromArgb(114, 28, 36);
+                    }
+                }));
+            }
+            else
+            {
+                if (passed)
+                {
+                    conflictMatrix.Rows[row].Cells[col].Value = "\u2713";
+                    conflictMatrix.Rows[row].Cells[col].Style.BackColor = Color.FromArgb(212, 237, 218);
+                    conflictMatrix.Rows[row].Cells[col].Style.ForeColor = Color.FromArgb(21, 87, 36);
+                }
+                else
+                {
+                    conflictMatrix.Rows[row].Cells[col].Value = "\u2717";
+                    conflictMatrix.Rows[row].Cells[col].Style.BackColor = Color.FromArgb(248, 215, 218);
+                    conflictMatrix.Rows[row].Cells[col].Style.ForeColor = Color.FromArgb(114, 28, 36);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets a text representation of the matrix for export
+        /// </summary>
+        public string GetMatrixAsText()
+        {
+            if (MatrixPhaseCount == 0) return "";
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("CONFLICT MATRIX (From -> To)");
+            sb.AppendLine(new string('=', 50));
+            sb.AppendLine();
+
+            // Header row
+            sb.Append("    ");
+            for (int j = 0; j < MatrixPhaseCount; j++)
+                sb.Append($"  {Convert.ToChar(65 + j)} ");
+            sb.AppendLine();
+
+            // Data rows
+            for (int i = 0; i < MatrixPhaseCount; i++)
+            {
+                sb.Append($" {Convert.ToChar(65 + i)}  ");
+                for (int j = 0; j < MatrixPhaseCount; j++)
+                {
+                    string cell = MatrixResults[i, j] switch
+                    {
+                        -1 => " - ",
+                        0 => " O ",  // Pending
+                        1 => " * ",  // Running
+                        2 => " P ",  // Pass
+                        3 => " F ",  // Fail
+                        _ => " ? "
+                    };
+                    sb.Append(cell + " ");
+                }
+                sb.AppendLine();
+            }
+
+            sb.AppendLine();
+            sb.AppendLine("Legend: P = Pass, F = Fail, O = Pending, - = No Conflict");
+            sb.AppendLine();
+            sb.AppendLine("CONFLICT RUN ORDER");
+            sb.AppendLine(new string('=', 50));
+            int orderNum = 1;
+            foreach (var conflict in ConflictRunOrder)
+            {
+                sb.AppendLine($"{orderNum++}. {conflict}");
+            }
+
+            return sb.ToString();
+        }
+
         /// <summary>
         /// Downloads a string from the specified URL with optional debug output
         /// </summary>
@@ -165,6 +384,17 @@ namespace Conflict_Test___Auto
                     webDataSplitPhases[i] = (i + 1).ToString();
                 }
 
+                // Initialize the conflict matrix UI
+                int realPhaseCount = NumberOfPhases - NumberOfDummyPhases;
+                if (conflictMatrix.InvokeRequired)
+                {
+                    conflictMatrix.Invoke(new Action(() => InitializeMatrix(realPhaseCount)));
+                }
+                else
+                {
+                    InitializeMatrix(realPhaseCount);
+                }
+
                 if ((NumberOfPhases - NumberOfDummyPhases) <= MaxOutputs)
                 {
 
@@ -233,6 +463,20 @@ namespace Conflict_Test___Auto
 
                             RemoveDummyConflicts[i] = "0";
 
+                        }
+                    }
+
+                    // Mark all valid conflicts as pending in the matrix
+                    for (int idx = 0; idx < NumberOfConflicts; idx++)
+                    {
+                        if (RemoveDummyConflicts[idx] == "1")
+                        {
+                            int fromP = Int32.Parse(ConflictFromPhase[idx]);
+                            int toP = Int32.Parse(ConflictToPhase[idx]);
+                            if (fromP <= realPhaseCount && toP <= realPhaseCount)
+                            {
+                                SetMatrixPending(fromP, toP);
+                            }
                         }
                     }
 
@@ -342,6 +586,9 @@ namespace Conflict_Test___Auto
                                 string webDataPhasesColour = WebFetchDebug(wq, "http://" + IPAddress + "/parv/XSG.CSC/");
                                 string[] webDataSplitPhasesColour = webDataPhasesColour.Split('\n');
 
+                                // Mark this conflict as currently running in the matrix
+                                SetMatrixRunning(Int32.Parse(ConflictFromPhase[i]), Int32.Parse(ConflictToPhase[i]));
+
                                 while (((webDataSplitPhasesColour[Int32.Parse(ConflictFromPhase[i]) - 1] != "3") || (webDataSplitPhasesColour[Int32.Parse(ConflictToPhase[i]) - 1] == "3") || (webDataSplitPhasesColour[Int32.Parse(ConflictToPhase[i]) - 1] == "4")) && (StopStart == 0))
                                 {
                                     // Get Phases Letters
@@ -378,6 +625,9 @@ namespace Conflict_Test___Auto
 
                                 if (StopStart == 0)
                                 {
+                                    // Update matrix with PASS result
+                                    UpdateMatrixResult(Int32.Parse(ConflictFromPhase[i]), Int32.Parse(ConflictToPhase[i]), true);
+
                                     textBox2.AppendText("Conflict From Phase: " + Convert.ToChar(Int32.Parse(ConflictFromPhase[i]) + 64) + " To Phase: " + Convert.ToChar(Int32.Parse(ConflictToPhase[i]) + 64));
                                     textBox2.AppendText(" | ");
                                     textBox2.SelectionColor = Color.Green;
@@ -388,6 +638,9 @@ namespace Conflict_Test___Auto
                                 }
                                 else
                                 {
+                                    // Update matrix with FAIL result (stopped by user)
+                                    UpdateMatrixResult(Int32.Parse(ConflictFromPhase[i]), Int32.Parse(ConflictToPhase[i]), false);
+
                                     textBox2.AppendText(Environment.NewLine);
                                     textBox2.SelectionColor = Color.Red;
                                     textBox2.AppendText("\u2718 Conflict From Phase Incomplete");
@@ -675,7 +928,21 @@ namespace Conflict_Test___Auto
                 statusLabel.ForeColor = Color.FromArgb(0, 123, 255);
 
                 rtfName = dlg.FileName;
-                File.WriteAllText(dlg.FileName, textBox2.Rtf);
+
+                // Create a temporary RichTextBox to append matrix data
+                RichTextBox tempRtf = new RichTextBox();
+                tempRtf.Rtf = textBox2.Rtf;
+
+                // Append the matrix text representation
+                if (MatrixPhaseCount > 0)
+                {
+                    tempRtf.AppendText(Environment.NewLine);
+                    tempRtf.AppendText(Environment.NewLine);
+                    tempRtf.SelectionFont = new System.Drawing.Font(tempRtf.Font, FontStyle.Bold);
+                    tempRtf.AppendText(GetMatrixAsText());
+                }
+
+                File.WriteAllText(dlg.FileName, tempRtf.Rtf);
 
                 statusLabel.Text = "\u2714 RTF exported successfully";
                 statusLabel.ForeColor = Color.FromArgb(40, 167, 69);
@@ -778,6 +1045,8 @@ namespace Conflict_Test___Auto
                     Font boldFont = new Font(iTextSharp.text.Font.FontFamily.HELVETICA, 10, iTextSharp.text.Font.BOLD, BaseColor.BLACK);
                     Font greenFont = new Font(iTextSharp.text.Font.FontFamily.HELVETICA, 10, iTextSharp.text.Font.NORMAL, new BaseColor(40, 167, 69));
                     Font redFont = new Font(iTextSharp.text.Font.FontFamily.HELVETICA, 10, iTextSharp.text.Font.NORMAL, new BaseColor(220, 53, 69));
+                    Font smallFont = new Font(iTextSharp.text.Font.FontFamily.HELVETICA, 8, iTextSharp.text.Font.NORMAL, BaseColor.BLACK);
+                    Font smallBoldFont = new Font(iTextSharp.text.Font.FontFamily.HELVETICA, 8, iTextSharp.text.Font.BOLD, BaseColor.WHITE);
 
                     // Parse the RichTextBox content line by line
                     string[] lines = textBox2.Text.Split(new[] { Environment.NewLine, "\n" }, StringSplitOptions.None);
@@ -815,6 +1084,116 @@ namespace Conflict_Test___Auto
 
                         para.SpacingAfter = 2;
                         doc.Add(para);
+                    }
+
+                    // Add the Conflict Matrix section
+                    if (MatrixPhaseCount > 0)
+                    {
+                        doc.Add(new Paragraph(" "));
+                        doc.Add(new Paragraph("CONFLICT MATRIX (From → To)", titleFont) { SpacingBefore = 20, SpacingAfter = 10 });
+
+                        // Create the matrix table
+                        PdfPTable matrixTable = new PdfPTable(MatrixPhaseCount + 1);
+                        matrixTable.WidthPercentage = 60;
+                        matrixTable.HorizontalAlignment = Element.ALIGN_LEFT;
+
+                        // Set column widths
+                        float[] widths = new float[MatrixPhaseCount + 1];
+                        widths[0] = 1.5f; // Row header column
+                        for (int i = 1; i <= MatrixPhaseCount; i++)
+                            widths[i] = 1f;
+                        matrixTable.SetWidths(widths);
+
+                        // Header row - empty corner cell + phase letters
+                        PdfPCell cornerCell = new PdfPCell(new Phrase("", smallBoldFont));
+                        cornerCell.BackgroundColor = new BaseColor(52, 58, 64);
+                        cornerCell.HorizontalAlignment = Element.ALIGN_CENTER;
+                        cornerCell.VerticalAlignment = Element.ALIGN_MIDDLE;
+                        cornerCell.Padding = 5;
+                        matrixTable.AddCell(cornerCell);
+
+                        for (int j = 0; j < MatrixPhaseCount; j++)
+                        {
+                            PdfPCell headerCell = new PdfPCell(new Phrase(Convert.ToChar(65 + j).ToString(), smallBoldFont));
+                            headerCell.BackgroundColor = new BaseColor(52, 58, 64);
+                            headerCell.HorizontalAlignment = Element.ALIGN_CENTER;
+                            headerCell.VerticalAlignment = Element.ALIGN_MIDDLE;
+                            headerCell.Padding = 5;
+                            matrixTable.AddCell(headerCell);
+                        }
+
+                        // Data rows
+                        for (int i = 0; i < MatrixPhaseCount; i++)
+                        {
+                            // Row header
+                            PdfPCell rowHeader = new PdfPCell(new Phrase(Convert.ToChar(65 + i).ToString(), smallBoldFont));
+                            rowHeader.BackgroundColor = new BaseColor(52, 58, 64);
+                            rowHeader.HorizontalAlignment = Element.ALIGN_CENTER;
+                            rowHeader.VerticalAlignment = Element.ALIGN_MIDDLE;
+                            rowHeader.Padding = 5;
+                            matrixTable.AddCell(rowHeader);
+
+                            // Data cells
+                            for (int j = 0; j < MatrixPhaseCount; j++)
+                            {
+                                string cellText;
+                                BaseColor bgColor;
+                                BaseColor textColor;
+
+                                switch (MatrixResults[i, j])
+                                {
+                                    case 2: // Pass
+                                        cellText = "P";
+                                        bgColor = new BaseColor(212, 237, 218);
+                                        textColor = new BaseColor(21, 87, 36);
+                                        break;
+                                    case 3: // Fail
+                                        cellText = "F";
+                                        bgColor = new BaseColor(248, 215, 218);
+                                        textColor = new BaseColor(114, 28, 36);
+                                        break;
+                                    case 0: // Pending
+                                        cellText = "O";
+                                        bgColor = new BaseColor(255, 243, 205);
+                                        textColor = new BaseColor(133, 100, 4);
+                                        break;
+                                    default: // No conflict
+                                        cellText = "-";
+                                        bgColor = new BaseColor(245, 245, 245);
+                                        textColor = new BaseColor(180, 180, 180);
+                                        break;
+                                }
+
+                                Font cellFont = new Font(iTextSharp.text.Font.FontFamily.HELVETICA, 8, iTextSharp.text.Font.BOLD, textColor);
+                                PdfPCell dataCell = new PdfPCell(new Phrase(cellText, cellFont));
+                                dataCell.BackgroundColor = bgColor;
+                                dataCell.HorizontalAlignment = Element.ALIGN_CENTER;
+                                dataCell.VerticalAlignment = Element.ALIGN_MIDDLE;
+                                dataCell.Padding = 5;
+                                matrixTable.AddCell(dataCell);
+                            }
+                        }
+
+                        doc.Add(matrixTable);
+
+                        // Add legend
+                        Paragraph legend = new Paragraph("Legend: P = Pass, F = Fail, O = Pending, - = No Conflict", smallFont);
+                        legend.SpacingBefore = 10;
+                        doc.Add(legend);
+
+                        // Add Conflict Run Order
+                        if (ConflictRunOrder.Count > 0)
+                        {
+                            doc.Add(new Paragraph(" "));
+                            doc.Add(new Paragraph("CONFLICT RUN ORDER", titleFont) { SpacingBefore = 15, SpacingAfter = 10 });
+
+                            int orderNum = 1;
+                            foreach (var conflict in ConflictRunOrder)
+                            {
+                                Font orderFont = conflict.Contains("PASS") ? greenFont : redFont;
+                                doc.Add(new Paragraph($"{orderNum++}. {conflict}", orderFont) { SpacingAfter = 2 });
+                            }
+                        }
                     }
 
                     doc.Close();

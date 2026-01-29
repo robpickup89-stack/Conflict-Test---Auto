@@ -643,7 +643,7 @@ namespace Conflict_Test___Auto
                     {
                         MessageBox.Show(this, "Unable to set Manual Level 3 after 5 attempts.\nPlease ensure Level 3 is set manually on the controller.", "Level 3 Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     }
-                    string LEV3 = WebFetchWithCookies(sessionCookies, "http://" + IPAddress + "/parv/SF.SYS/96");
+                    string LEV3 = WebFetchWithCookies(sessionCookies, "http://" + IPAddress + "/parv/SF.SYS/96").Trim();
 
                     // Reboot controller before starting test to ensure clean state
                     // Try multiple formats with fallbacks
@@ -720,13 +720,13 @@ namespace Conflict_Test___Auto
                                 // Re-fetch Level 3 status before checking
                                 Thread.Sleep(2000);
                                 System.Net.WebClient wqLev3Check = new System.Net.WebClient();
-                                LEV3 = WebFetchDebug(wqLev3Check, "http://" + IPAddress + "/parv/SF.SYS/96");
+                                LEV3 = WebFetchDebug(wqLev3Check, "http://" + IPAddress + "/parv/SF.SYS/96").Trim();
 
-                                while (Convert.ToChar(Int32.Parse(LEV3)) < 300)
+                                while (Int32.Parse(LEV3.Trim()) < 300)
                                 {
                                     MessageBox.Show(this, "Please press Level 3 Button", "No Level 3", MessageBoxButtons.OK, MessageBoxIcon.Stop);
                                     Thread.Sleep(3000); // Wait before re-checking Level 3
-                                    LEV3 = WebFetchDebug(wqLev3Check, "http://" + IPAddress + "/parv/SF.SYS/96");
+                                    LEV3 = WebFetchDebug(wqLev3Check, "http://" + IPAddress + "/parv/SF.SYS/96").Trim();
                                 }
 
                                 // Get Phases Letters
